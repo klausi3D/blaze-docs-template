@@ -251,6 +251,20 @@
   padding: var(--space-4);
 }
 
+.toc {
+  align-self: start;
+  max-height: calc(100vh - var(--space-12) - var(--space-8));
+  overflow: hidden;
+  position: sticky;
+  top: calc(var(--space-12) + var(--space-4));
+}
+
+.toc-list {
+  max-height: calc(100vh - var(--space-12) - var(--space-12));
+  overflow: auto;
+  padding-right: var(--space-1);
+}
+
 .doc-panel {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));

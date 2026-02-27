@@ -43,6 +43,8 @@ npm run preview
 npm run seed:book
 ```
 
+This creates a single page at `content/book/index.md` with one section per chapter (`## Chapter ...`), so chapter links appear in the page TOC. By default, it keeps one paragraph per chapter for fast loads.
+
 ## Content Authoring
 
 Add markdown files in `content/`.

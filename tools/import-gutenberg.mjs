@@ -12,10 +12,14 @@ const bookTitle = args.title || "Pride and Prejudice";
 const bookAuthor = args.author || "Jane Austen";
 const targetDir = path.join(rootDir, args.target || "content/book");
 const maxSections = args.maxSections ? Number(args.maxSections) : Infinity;
+const paragraphsPerChapter = args.paragraphsPerChapter ? Number(args.paragraphsPerChapter) : 1;
 const orderStart = args.orderStart ? Number(args.orderStart) : 120;
 
 if (maxSections !== Infinity && (!Number.isFinite(maxSections) || maxSections <= 0)) {
   throw new Error("maxSections must be a positive number");
+}
+if (!Number.isFinite(paragraphsPerChapter) || paragraphsPerChapter <= 0) {
+  throw new Error("paragraphsPerChapter must be a positive number");
 }
 
 await importBook();
@@ -38,34 +42,17 @@ async function importBook() {
   await fs.rm(targetDir, { recursive: true, force: true });
   await fs.mkdir(targetDir, { recursive: true });
 
-  const chapterLinks = [];
-
+  const chapterBlocks = [];
   for (const section of sections) {
     const chapterTitle = collapseWhitespace(section.heading);
-    const chapterBody = toMarkdownParagraphs(section.body);
-    const fileName = `${section.slug}.md`;
-    const frontMatter = [
-      "---",
-      `title: \"${escapeYaml(`${bookTitle} - ${chapterTitle}`)}\"`,
-      `description: \"${escapeYaml(`Placeholder excerpt from ${bookTitle}`)}\"`,
-      `order: ${orderStart + section.index}`,
-      `slug: book/${section.slug}`,
-      "nav_exclude: true",
-      "search_exclude: true",
-      "---",
-      "",
-    ].join("\n");
-
-    const markdown = `${frontMatter}# ${chapterTitle}\n\n${chapterBody}\n`;
-    await fs.writeFile(path.join(targetDir, fileName), markdown, "utf8");
-    chapterLinks.push(`- [${chapterTitle}](./${fileName})`);
-  }
-
-  const previewSection = sections[0];
-  const previewParagraphs = extractParagraphs(previewSection.body, 7);
-  const previewBlocks = [];
-  for (const paragraph of previewParagraphs) {
-    previewBlocks.push(paragraph, "");
+    const excerptParagraphs = extractParagraphs(section.body, paragraphsPerChapter);
+    if (excerptParagraphs.length === 0) {
+      continue;
+    }
+    chapterBlocks.push(`## ${chapterTitle}`, "");
+    for (const paragraph of excerptParagraphs) {
+      chapterBlocks.push(paragraph, "");
+    }
   }
 
   const indexMd = [
@@ -74,6 +61,7 @@ async function importBook() {
     "description: \"Project Gutenberg placeholder text for typography and reading tests.\"",
     `order: ${orderStart}`,
     "slug: book",
+    "search_exclude: true",
     "---",
     "",
     `# ${bookTitle}`,
@@ -82,18 +70,9 @@ async function importBook() {
     "",
     `Source: Project Gutenberg eBook #${bookId}`,
     "",
-    "This section is generated placeholder content for testing documentation readability, rhythm, and long-form layout.",
+    `This page is generated placeholder content for testing typography and long-form readability. It includes ${sections.length} chapters, each truncated to ${paragraphsPerChapter} paragraph(s).`,
     "",
-    "## Reading sample",
-    "",
-    `### ${previewSection.heading}`,
-    "",
-    ...previewBlocks,
-    `[Continue chapter 1](./${sections[0].slug}.md)`,
-    "",
-    "## Chapters",
-    "",
-    ...chapterLinks,
+    ...chapterBlocks,
     "",
   ].join("\n");
 
@@ -106,6 +85,7 @@ async function importBook() {
         title: bookTitle,
         author: bookAuthor,
         chapters: sections.length,
+        paragraphsPerChapter,
         targetDir: toPosix(path.relative(rootDir, targetDir)),
       },
       null,
@@ -192,45 +172,6 @@ function normalizeHeading(value) {
   return cleaned;
 }
 
-function toMarkdownParagraphs(text) {
-  const lines = text.replace(/\r\n?/g, "\n").split("\n");
-  const blocks = [];
-  let paragraph = [];
-
-  const flushParagraph = () => {
-    if (paragraph.length === 0) {
-      return;
-    }
-    blocks.push(paragraph.join(" ").replace(/\s+/g, " ").trim());
-    paragraph = [];
-  };
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-
-    if (!line) {
-      flushParagraph();
-      continue;
-    }
-
-    if (isDiscardLine(line)) {
-      continue;
-    }
-
-    if (isStandaloneHeading(line)) {
-      flushParagraph();
-      blocks.push(`## ${toTitleCase(line.toLowerCase())}`);
-      continue;
-    }
-
-    paragraph.push(line);
-  }
-
-  flushParagraph();
-
-  return blocks.join("\n\n");
-}
-
 function extractParagraphs(text, maxParagraphs) {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
   const paragraphs = [];
@@ -292,14 +233,6 @@ function isDiscardLine(line) {
     return true;
   }
   return false;
-}
-
-function toTitleCase(value) {
-  return value
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }
 
 function collapseWhitespace(value) {
