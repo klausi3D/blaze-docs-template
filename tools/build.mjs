@@ -191,21 +191,166 @@ async function loadPages() {
 }
 
 async function renderMarkdown(markdown, page, pagesBySource, mediaPipeline) {
-  const rawHtml = marked.parse(markdown);
+  const prepared = extractFootnotes(markdown);
+  const rawHtml = marked.parse(prepared.markdown);
   const html = typeof rawHtml === "string" ? rawHtml : String(rawHtml);
 
-  const withRewrittenLinks = rewriteLinks(html, page, pagesBySource);
+  const withFootnotes = materializeFootnotes(html, prepared.footnotes);
+  const withRewrittenLinks = rewriteLinks(withFootnotes, page, pagesBySource);
   const withHeadingAnchors = injectHeadingAnchors(withRewrittenLinks);
   const optimizedImages = await optimizeImages(withHeadingAnchors.html, page, mediaPipeline);
   const optimized = await optimizeVideos(optimizedImages, page, mediaPipeline);
-  const searchText = collapseWhitespace(stripTags(optimized));
+  const normalized = unwrapStandaloneFigures(optimized);
+  const searchText = collapseWhitespace(stripTags(normalized));
 
   page.searchText = searchText;
 
   return {
-    html: optimized,
+    html: normalized,
     headings: withHeadingAnchors.headings,
   };
+}
+
+function extractFootnotes(markdown) {
+  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+  const bodyLines = [];
+  const definitions = new Map();
+  let activeFence = null;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const currentLine = lines[index];
+    const fenceMatch = currentLine.match(/^([`~]{3,})/);
+    if (fenceMatch) {
+      const marker = fenceMatch[1].charAt(0);
+      if (activeFence === null) {
+        activeFence = marker;
+      } else if (activeFence === marker) {
+        activeFence = null;
+      }
+      bodyLines.push(currentLine);
+      continue;
+    }
+
+    if (activeFence !== null) {
+      bodyLines.push(currentLine);
+      continue;
+    }
+
+    const definitionMatch = currentLine.match(/^\[\^([A-Za-z0-9_-]+)\]:\s*(.*)$/);
+
+    if (!definitionMatch) {
+      bodyLines.push(currentLine);
+      continue;
+    }
+
+    const footnoteKey = definitionMatch[1];
+    const definitionLines = [definitionMatch[2]];
+    let cursor = index + 1;
+    while (cursor < lines.length) {
+      const nextLine = lines[cursor];
+      if (/^(?: {2,}|\t)/.test(nextLine)) {
+        definitionLines.push(nextLine.replace(/^(?: {2,}|\t)/, ""));
+        cursor += 1;
+        continue;
+      }
+
+      if (nextLine.trim() === "" && /^(?: {2,}|\t)/.test(lines[cursor + 1] || "")) {
+        definitionLines.push("");
+        cursor += 1;
+        continue;
+      }
+
+      break;
+    }
+
+    index = cursor - 1;
+
+    const definition = definitionLines.join("\n").trim();
+    if (definition.length > 0) {
+      definitions.set(footnoteKey, definition);
+    }
+  }
+
+  const orderedFootnotes = [];
+  const referencesByKey = new Map();
+  const normalizedKeyCounts = new Map();
+  const markdownWithTokens = bodyLines.join("\n").replace(/\[\^([A-Za-z0-9_-]+)\]/g, (full, rawKey) => {
+    const definition = definitions.get(rawKey);
+    if (!definition) {
+      return full;
+    }
+
+    let note = referencesByKey.get(rawKey);
+    if (!note) {
+      const baseId = formatFootnoteId(rawKey);
+      const normalizedKeyCount = normalizedKeyCounts.get(baseId) || 0;
+      const noteId = normalizedKeyCount === 0 ? baseId : `${baseId}-${normalizedKeyCount + 1}`;
+      normalizedKeyCounts.set(baseId, normalizedKeyCount + 1);
+
+      note = {
+        key: rawKey,
+        noteId,
+        number: orderedFootnotes.length + 1,
+        content: definition,
+        refs: [],
+      };
+      referencesByKey.set(rawKey, note);
+      orderedFootnotes.push(note);
+    }
+
+    const referenceIndex = note.refs.length + 1;
+    note.refs.push(referenceIndex);
+    return `@@FNREF:${note.noteId}:${note.number}:${referenceIndex}@@`;
+  });
+
+  return {
+    markdown: markdownWithTokens,
+    footnotes: orderedFootnotes,
+  };
+}
+
+function materializeFootnotes(html, footnotes) {
+  const withReferenceLinks = html.replace(
+    /@@FNREF:([A-Za-z0-9_-]+):(\d+):(\d+)@@/g,
+    (_, noteId, numberText, referenceIndexText) => {
+      const number = Number(numberText);
+      const referenceIndex = Number(referenceIndexText);
+      const referenceId = referenceIndex === 1 ? `fnref-${noteId}` : `fnref-${noteId}-${referenceIndex}`;
+      return `<sup class="footnote-ref" id="${referenceId}"><a href="#fn-${noteId}" aria-label="Footnote ${number}">${number}</a></sup>`;
+    },
+  );
+
+  if (footnotes.length === 0) {
+    return withReferenceLinks;
+  }
+
+  const footnoteItems = footnotes
+    .map((note) => {
+      const renderedContent = marked.parse(note.content);
+      const contentHtml = typeof renderedContent === "string" ? renderedContent : String(renderedContent);
+      const backlinks = note.refs
+        .map((referenceIndex) => {
+          const referenceId =
+            referenceIndex === 1 ? `fnref-${note.noteId}` : `fnref-${note.noteId}-${referenceIndex}`;
+          return `<a class="footnote-backref" href="#${referenceId}" aria-label="Back to reference ${referenceIndex}">&#8617;</a>`;
+        })
+        .join(" ");
+
+      return `<li id="fn-${note.noteId}" class="footnote-item">${contentHtml}<p class="footnote-backrefs">${backlinks}</p></li>`;
+    })
+    .join("");
+
+  return `${withReferenceLinks}\n<section class="footnotes" aria-label="Footnotes">\n<h2>Footnotes</h2>\n<ol>${footnoteItems}</ol>\n</section>`;
+}
+
+function formatFootnoteId(value) {
+  const normalized = String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-_]+|[-_]+$/g, "");
+
+  return normalized || "note";
 }
 
 function rewriteLinks(html, page, pagesBySource) {
@@ -310,16 +455,20 @@ async function rewriteImageTag(attrs, page, mediaPipeline) {
   }
 
   try {
+    const captionText = resolveImageCaption(imageAttrs);
+    removeAttributes(imageAttrs, ["title"]);
     const processed =
       localSource.extension === ".gif"
         ? await mediaPipeline.processGif(localSource.absolutePath, localSource.sourceRelFromRoot)
         : await mediaPipeline.processImage(localSource.absolutePath, localSource.sourceRelFromRoot);
 
     if (processed.kind === "video") {
-      return buildVideoMarkup(imageAttrs, processed, page.outputPath);
+      const videoMarkup = buildVideoMarkup(imageAttrs, processed, page.outputPath);
+      return wrapMediaFigure(videoMarkup, captionText);
     }
 
-    return buildPictureMarkup(imageAttrs, processed, page.outputPath);
+    const pictureMarkup = buildPictureMarkup(imageAttrs, processed, page.outputPath);
+    return wrapMediaFigure(pictureMarkup, captionText);
   } catch (error) {
     console.warn(
       `[build] Unable to optimize image "${srcValue}" in "${page.sourceRel}": ${error.message}`,
@@ -334,7 +483,7 @@ function buildPictureMarkup(originalImageAttrs, processedImage, outputPath) {
   const fallbackVariants = processedImage.fallback.variants;
   const fallbackLargest = fallbackVariants[fallbackVariants.length - 1];
 
-  removeAttributes(imgAttrs, ["src", "srcset", "sizes", "width", "height"]);
+  removeAttributes(imgAttrs, ["src", "srcset", "sizes", "width", "height", "title"]);
   setAttribute(imgAttrs, "src", mediaHref(outputPath, fallbackLargest.fileName));
   setAttribute(imgAttrs, "srcset", buildSrcSet(fallbackVariants, outputPath));
   setAttribute(imgAttrs, "sizes", sizes);
@@ -381,7 +530,7 @@ function buildVideoMarkup(originalImageAttrs, processedVideo, outputPath) {
   setAttribute(videoAttrs, "height", processedVideo.height);
 
   const fallbackAlt = getAttribute(originalImageAttrs, "alt") || "";
-  removeAttributes(fallbackImgAttrs, ["src", "srcset", "sizes", "width", "height"]);
+  removeAttributes(fallbackImgAttrs, ["src", "srcset", "sizes", "width", "height", "title"]);
   setAttribute(fallbackImgAttrs, "src", posterHref);
   setAttribute(fallbackImgAttrs, "alt", fallbackAlt);
   setAttribute(fallbackImgAttrs, "width", processedVideo.width);
@@ -392,6 +541,32 @@ function buildVideoMarkup(originalImageAttrs, processedVideo, outputPath) {
   const mp4Href = mediaHref(outputPath, processedVideo.mp4FileName);
 
   return `<video${serializeHtmlAttributes(videoAttrs)}><source src="${escapeAttribute(webmHref)}" type="video/webm"><source src="${escapeAttribute(mp4Href)}" type="video/mp4"><img${serializeHtmlAttributes(fallbackImgAttrs)}></video>`;
+}
+
+function resolveImageCaption(attributes) {
+  const titleText = collapseWhitespace(getAttribute(attributes, "title") || "");
+  if (titleText) {
+    return titleText;
+  }
+
+  const altText = collapseWhitespace(getAttribute(attributes, "alt") || "");
+  if (altText) {
+    return altText;
+  }
+
+  return "";
+}
+
+function wrapMediaFigure(mediaMarkup, captionText) {
+  if (!captionText) {
+    return mediaMarkup;
+  }
+
+  return `<figure class="media-figure">${mediaMarkup}<figcaption>${escapeHtml(captionText)}</figcaption></figure>`;
+}
+
+function unwrapStandaloneFigures(html) {
+  return html.replace(/<p>\s*(<figure\b[\s\S]*?<\/figure>)\s*<\/p>/gi, "$1");
 }
 
 async function rewriteVideoTag(videoAttrs, innerHtml, page, mediaPipeline) {

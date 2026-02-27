@@ -28,6 +28,28 @@ npm run check:budgets
 
 Create markdown files in `content/`.
 
+## Typographic markdown examples
+
+Use semantic markdown and keep structure explicit.[^semantics]
+
+> Good docs are not short. They are clear, searchable, and easy to scan.
+>
+> - Documentation principle
+
+### Image with visible description
+
+```md
+![System architecture](./media/architecture.png "Figure 1. Read path from CDN edge to origin.")
+```
+
+### Footnote syntax
+
+```md
+Fast docs should still support citations.[^cite]
+
+[^cite]: Keep primary references close to the claim they support.
+```
+
 ### Front matter example
 
 ```yaml
@@ -42,3 +64,5 @@ slug: api
 ## Deploy
 
 Push to `main` and enable GitHub Pages to use GitHub Actions as source.
+
+[^semantics]: The renderer now supports `[^id]` references and `[^id]: definition` blocks.

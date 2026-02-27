@@ -63,6 +63,12 @@ Front matter fields:
 `index.md` maps to `/`.
 Every other page maps to `/your-slug/`.
 
+Markdown features:
+
+- Footnotes with reference syntax (`[^id]` + `[^id]: ...`).
+- Styled blockquotes and long-form reading defaults.
+- Image descriptions via figure captions (image `title` first, then non-empty `alt` text).
+
 ## Media Pipeline
 
 - Supported source formats: `.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`, `.gif`, `.mp4`, `.webm`.
