@@ -359,11 +359,11 @@
   line-height: var(--rhythm);
 }
 
-.prose a {
+.prose a:not(.anchor-link) {
   color: var(--link);
 }
 
-.prose a:hover {
+.prose a:not(.anchor-link):hover {
   color: color-mix(in srgb, var(--link) 80%, black);
 }
 
@@ -389,8 +389,9 @@
   text-decoration: none;
 }
 
-.anchor-link:hover {
+.prose :is(h1, h2, h3, h4):hover .anchor-link {
   text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--line-strong) 65%, transparent);
   text-decoration-thickness: 0.08em;
 }
 
