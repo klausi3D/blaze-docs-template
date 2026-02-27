@@ -25,32 +25,27 @@
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /*
-   * BASELINE GRID SYSTEM
-   * Base unit: 0.5rem (8px)
-   * Body line-height: 1.5rem (24px) = 3 units
-   * All vertical spacing must be multiples of 0.5rem
+   * BASELINE GRID — 120% line-height
+   * Body: 1rem @ 1.2 line-height = 1.2rem baseline
+   * All vertical spacing: multiples of 1.2rem
    */
-  --baseline: 1.5rem;
-  --unit: 0.5rem;
+  --baseline: 1.2rem;
 
-  /* Spacing scale - all multiples of 0.5rem */
-  --space-1: 0.5rem;   /* 8px  = 1 unit */
-  --space-2: 1rem;     /* 16px = 2 units */
-  --space-3: 1.5rem;   /* 24px = 3 units = 1 baseline */
-  --space-4: 2rem;     /* 32px = 4 units */
-  --space-5: 2.5rem;   /* 40px = 5 units */
-  --space-6: 3rem;     /* 48px = 6 units = 2 baselines */
-  --space-8: 4rem;     /* 64px = 8 units */
+  /* Spacing scale - multiples of baseline */
+  --space-1: 0.6rem;   /* 0.5 baseline */
+  --space-2: 1.2rem;   /* 1 baseline */
+  --space-3: 1.8rem;   /* 1.5 baselines */
+  --space-4: 2.4rem;   /* 2 baselines */
+  --space-5: 3rem;     /* 2.5 baselines */
+  --space-6: 3.6rem;   /* 3 baselines */
+  --space-8: 4.8rem;   /* 4 baselines */
 
-  /*
-   * Type scale
-   * Each size paired with a line-height that fits the baseline grid
-   */
-  --step--1: 0.875rem;  /* 14px, line-height: 1.5rem (24px) */
-  --step-0: 1rem;       /* 16px, line-height: 1.5rem (24px) */
-  --step-1: 1.25rem;    /* 20px, line-height: 1.5rem (24px) */
-  --step-2: 1.5rem;     /* 24px, line-height: 2rem (32px) */
-  --step-3: 2rem;       /* 32px, line-height: 2.5rem (40px) */
+  /* Type scale */
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.5rem;
+  --step-3: 2rem;
 
   /* Layout */
   --measure: 65ch;
@@ -83,7 +78,7 @@ body {
   color: var(--text);
   font-family: var(--font-serif);
   font-size: var(--step-0);
-  line-height: var(--baseline);
+  line-height: 1.2;
   font-kerning: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -136,7 +131,7 @@ video {
 
 /*
  * Grid debug overlay
- * Shows baseline grid at 1.5rem (24px) intervals
+ * Shows baseline at 1.2rem intervals
  */
 body.grid-debug::before {
   background-image: repeating-linear-gradient(

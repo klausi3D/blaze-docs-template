@@ -47,14 +47,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TOPBAR
-   Padding uses baseline units: 0.75rem top/bottom = 1.5 units
+   TOPBAR — 3 baselines tall (3.6rem)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .topbar {
   background: var(--surface);
-  box-shadow: 0 1px 0 var(--line); /* Use shadow instead of border to preserve baseline math */
-  height: var(--space-6); /* Exactly 48px = 2 baselines */
+  box-shadow: 0 1px 0 var(--line);
+  height: var(--space-6); /* 3.6rem = 3 baselines */
   position: sticky;
   top: 0;
   z-index: 20;
@@ -76,7 +75,7 @@
   font-size: var(--step--1);
   font-weight: 600;
   letter-spacing: 0.05em;
-  line-height: var(--baseline);
+  line-height: 1.2;
   text-decoration: none;
   text-transform: uppercase;
 }
@@ -89,8 +88,8 @@
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: var(--step--1);
-  line-height: var(--baseline);
-  padding: 0 var(--space-1);
+  line-height: 1.2;
+  padding: var(--space-1) var(--space-1);
 }
 
 .grid-toggle:hover,
@@ -122,8 +121,8 @@
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--step--1);
-  line-height: var(--baseline);
-  padding: 0 var(--space-1);
+  line-height: 1.2;
+  padding: var(--space-1);
   width: 100%;
 }
 
@@ -177,19 +176,18 @@
   font-family: var(--font-sans);
   font-size: var(--step--1);
   font-weight: 600;
-  line-height: var(--baseline);
+  line-height: 1.2;
 }
 
 .result-snippet {
   color: var(--muted);
   display: block;
   font-size: var(--step--1);
-  line-height: var(--baseline);
+  line-height: 1.2;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LAYOUT
-   All gaps and padding are baseline multiples
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .site-shell {
@@ -198,11 +196,11 @@
   grid-template-columns: 12rem minmax(0, 1fr);
   margin: 0 auto;
   max-width: var(--shell-max);
-  padding: 0 var(--space-2); /* Vertical padding handled by children */
+  padding: 0 var(--space-2);
 }
 
 .sidebar {
-  padding-top: var(--space-6); /* 48px = 2 baselines, total from top: 48+48=96px = 4 baselines */
+  padding-top: var(--space-4); /* 2 baselines */
 }
 
 .sidebar h2,
@@ -212,7 +210,7 @@
   font-size: var(--step--1);
   font-weight: 600;
   letter-spacing: 0.02em;
-  line-height: var(--baseline);
+  line-height: 1.2;
   margin: 0 0 var(--space-1);
   text-transform: uppercase;
 }
@@ -235,7 +233,7 @@
   display: block;
   font-family: var(--font-sans);
   font-size: var(--step--1);
-  line-height: var(--baseline);
+  line-height: 1.2;
   padding: 0;
   text-decoration: none;
 }
@@ -253,8 +251,8 @@
   border-left: 2px solid var(--accent);
   color: var(--accent);
   font-weight: 600;
-  margin-left: -0.5rem;
-  padding-left: calc(0.5rem - 2px);
+  margin-left: -0.6rem;
+  padding-left: calc(0.6rem - 2px);
 }
 
 .content-column {
@@ -265,14 +263,14 @@
 
 .doc-panel {
   background: var(--surface);
-  padding: var(--space-6) var(--space-4); /* Top: 48px, total from viewport: 48+48=96px = 4 baselines */
+  padding: var(--space-4) var(--space-4); /* 2 baselines top */
 }
 
 .toc {
   align-self: start;
-  padding-top: var(--space-6); /* Match doc-panel */
+  padding-top: var(--space-4);
   position: sticky;
-  top: var(--space-6); /* 48px below topbar */
+  top: var(--space-6); /* Below topbar */
 }
 
 .toc-list {
@@ -281,10 +279,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PROSE — BASELINE-ALIGNED TYPOGRAPHY
-
-   All elements sized to fit the 1.5rem (24px) baseline grid.
-   Margins are multiples of 1.5rem to maintain vertical rhythm.
+   PROSE — 120% LINE-HEIGHT TYPOGRAPHY
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .prose {
@@ -300,11 +295,7 @@
   margin-top: var(--baseline);
 }
 
-/*
- * Headings
- * All use line-height: 1.5rem or 3rem to fit the baseline.
- * Larger spacing above than below creates visual hierarchy.
- */
+/* Headings */
 .prose > h1,
 .prose > h2,
 .prose > h3,
@@ -312,39 +303,33 @@
   color: var(--text-strong);
   font-family: var(--font-serif);
   font-weight: 600;
+  line-height: 1.2;
   scroll-margin-top: var(--space-6);
 }
 
 .prose > h1 {
   font-size: var(--step-2);
-  line-height: 3rem; /* 2 baselines */
   margin-bottom: var(--baseline);
 }
 
 .prose > h2 {
   border-top: 1px solid var(--line);
   font-size: var(--step-1);
-  line-height: var(--baseline);
-  margin-top: var(--space-6); /* 2 baselines */
-  padding-top: calc(var(--baseline) - 1px);
+  margin-top: var(--space-6);
+  padding-top: var(--space-2);
 }
 
 .prose > h3 {
   font-size: var(--step-0);
   font-weight: 600;
-  line-height: var(--baseline);
-  margin-top: var(--space-3); /* 1 baseline */
+  margin-top: var(--space-4);
 }
 
 .prose > h4 {
   font-size: var(--step-0);
-  line-height: var(--baseline);
 }
 
-/*
- * Body text
- * line-height: 1.5rem for perfect baseline alignment
- */
+/* Body text — 120% line-height */
 .prose > p,
 .prose li,
 .prose td,
@@ -359,7 +344,7 @@
 .prose td,
 .prose th {
   font-size: var(--step-0);
-  line-height: var(--baseline);
+  line-height: 1.2;
 }
 
 .prose a:not(.anchor-link) {
@@ -374,11 +359,11 @@
 .prose > h1 + p {
   color: var(--muted);
   font-size: var(--step-0);
-  line-height: var(--baseline);
+  line-height: 1.2;
   margin-top: 0;
 }
 
-/* Lists - each item sits on baseline */
+/* Lists */
 .prose > ul,
 .prose > ol {
   padding-left: var(--space-3);
@@ -400,19 +385,15 @@
   text-decoration-thickness: 1px;
 }
 
-/*
- * Code blocks
- * Padding calculated to maintain baseline alignment:
- * 0.75rem top + content + 0.75rem bottom = maintains rhythm
- */
+/* Code blocks */
 .prose > pre {
   background: var(--accent-soft);
   border-left: 3px solid var(--line-strong);
   color: var(--text-strong);
   font-size: var(--step--1);
-  line-height: var(--baseline);
+  line-height: 1.2;
   overflow: auto;
-  padding: 0.75rem var(--space-2);
+  padding: var(--space-1) var(--space-2);
 }
 
 .prose code,
@@ -438,8 +419,8 @@
 .prose > table th,
 .prose > table td {
   border-bottom: 1px solid var(--line);
-  line-height: var(--baseline);
-  padding: 0.25rem var(--space-1);
+  line-height: 1.2;
+  padding: var(--space-1);
   text-align: left;
   vertical-align: baseline;
 }
@@ -455,7 +436,7 @@
 .prose > picture,
 .prose > video,
 .prose > img {
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
   width: 100%;
 }
 
@@ -468,7 +449,7 @@
 .prose figcaption {
   color: var(--muted);
   font-size: var(--step--1);
-  line-height: var(--baseline);
+  line-height: 1.2;
   margin-top: var(--space-1);
 }
 
@@ -492,12 +473,10 @@
 .prose > hr {
   border: 0;
   border-top: 1px solid var(--line);
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
 }
 
-/*
- * Footnotes
- */
+/* Footnotes */
 .prose .footnote-ref a {
   color: var(--accent);
   font-family: var(--font-sans);
@@ -510,15 +489,15 @@
 .prose .footnotes {
   border-top: 1px solid var(--line);
   font-size: var(--step--1);
-  line-height: var(--baseline);
+  line-height: 1.2;
   margin-top: var(--space-6);
-  padding-top: calc(var(--baseline) - 1px);
+  padding-top: var(--space-2);
 }
 
 .prose .footnotes h2 {
   border: 0;
   font-size: var(--step-0);
-  line-height: var(--baseline);
+  line-height: 1.2;
   margin: 0;
   padding: 0;
 }
@@ -558,9 +537,9 @@
   color: var(--muted);
   font-family: var(--font-sans);
   font-size: var(--step--1);
-  line-height: var(--baseline);
+  line-height: 1.2;
   margin-top: var(--space-6);
-  padding-top: calc(var(--baseline) - 1px);
+  padding-top: var(--space-2);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -569,7 +548,7 @@
 
 @media (max-width: 64rem) {
   .site-shell {
-    gap: var(--space-3);
+    gap: var(--space-4);
     grid-template-columns: 10rem minmax(0, 1fr);
   }
 
@@ -599,14 +578,14 @@
 
   .sidebar {
     display: none;
-    padding-top: var(--space-3);
+    padding-top: var(--space-2);
   }
 
   .site-shell.nav-open .sidebar {
     box-shadow: 0 1px 0 var(--line);
     display: block;
-    margin-bottom: var(--space-3);
-    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-2);
   }
 
   .search-wrap {
@@ -616,6 +595,6 @@
   }
 
   .doc-panel {
-    padding: var(--space-3) var(--space-2);
+    padding: var(--space-2);
   }
 }
