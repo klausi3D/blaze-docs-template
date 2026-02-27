@@ -21,6 +21,11 @@
   --space-12: calc(var(--baseline) * 12);
 
   --measure: 74ch;
+  --grid-max-width: 82rem;
+  --grid-columns: 12;
+  --grid-gutter: 1rem;
+  --grid-color-baseline: rgba(12, 106, 99, 0.2);
+  --grid-color-columns: rgba(12, 106, 99, 0.08);
 
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
@@ -41,8 +46,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-serif);
-  font-size: 1.0625rem;
-  line-height: 1.75rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  position: relative;
   text-rendering: optimizeLegibility;
 }
 
@@ -69,4 +75,40 @@ a {
   padding: 0;
   position: absolute;
   width: 1px;
+}
+
+body.grid-debug::before {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--baseline) - 1px),
+    var(--grid-color-baseline) calc(var(--baseline) - 1px),
+    var(--grid-color-baseline) var(--baseline)
+  );
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 9998;
+}
+
+body.grid-debug::after {
+  --grid-column: calc((100% - (var(--grid-columns) - 1) * var(--grid-gutter)) / var(--grid-columns));
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--grid-color-columns) 0,
+    var(--grid-color-columns) var(--grid-column),
+    transparent var(--grid-column),
+    transparent calc(var(--grid-column) + var(--grid-gutter))
+  );
+  content: "";
+  height: 100vh;
+  left: 50%;
+  max-width: calc(100vw - 2rem);
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: translateX(-50%);
+  width: var(--grid-max-width);
+  z-index: 9997;
 }

@@ -8,7 +8,9 @@ const resolveFromRoot = (path) => new URL(path, rootUrl).href;
 const searchInput = document.querySelector("[data-search-input]");
 const searchResults = document.querySelector("[data-search-results]");
 const menuToggle = document.querySelector("[data-menu-toggle]");
+const gridToggle = document.querySelector("[data-grid-toggle]");
 const shell = document.querySelector("[data-site-shell]");
+const gridStorageKey = "blaze-grid-debug";
 
 const state = {
   docs: null,
@@ -23,6 +25,8 @@ if (menuToggle && shell) {
     shell.classList.toggle("nav-open");
   });
 }
+
+setupGridDebug();
 
 if (searchInput && searchResults) {
   searchInput.addEventListener("focus", () => {
@@ -242,4 +246,63 @@ function debounce(fn, waitMs) {
     }
     timeoutId = window.setTimeout(() => fn(...args), waitMs);
   };
+}
+
+function setupGridDebug() {
+  const params = new URLSearchParams(window.location.search);
+  const forcedOn = params.get("grid") === "1";
+  const forcedOff = params.get("grid") === "0";
+  let enabled = false;
+
+  if (forcedOn) {
+    enabled = true;
+  } else if (forcedOff) {
+    enabled = false;
+  } else {
+    enabled = readGridPreference();
+  }
+
+  applyGridDebug(enabled);
+
+  if (gridToggle) {
+    gridToggle.addEventListener("click", () => {
+      const nextEnabled = !document.body.classList.contains("grid-debug");
+      applyGridDebug(nextEnabled);
+      writeGridPreference(nextEnabled);
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (!event.altKey || event.key.toLowerCase() !== "g") {
+      return;
+    }
+    event.preventDefault();
+    const nextEnabled = !document.body.classList.contains("grid-debug");
+    applyGridDebug(nextEnabled);
+    writeGridPreference(nextEnabled);
+  });
+}
+
+function applyGridDebug(enabled) {
+  document.body.classList.toggle("grid-debug", enabled);
+  if (gridToggle) {
+    gridToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+    gridToggle.textContent = enabled ? "Grid On" : "Grid";
+  }
+}
+
+function readGridPreference() {
+  try {
+    return localStorage.getItem(gridStorageKey) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeGridPreference(enabled) {
+  try {
+    localStorage.setItem(gridStorageKey, enabled ? "1" : "0");
+  } catch {
+    // Ignore storage write failures.
+  }
 }

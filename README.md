@@ -45,6 +45,8 @@ npm run seed:book
 
 This creates a single page at `content/book/index.md` with one section per chapter (`## Chapter ...`), so chapter links appear in the page TOC. By default, it keeps one paragraph per chapter for fast loads.
 
+Grid debug mode is available in the UI (`Grid` button in top bar), with keyboard shortcut `Alt+G`, or by appending `?grid=1` to any URL.
+
 ## Content Authoring
 
 Add markdown files in `content/`.

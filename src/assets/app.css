@@ -75,6 +75,25 @@
   text-transform: uppercase;
 }
 
+.grid-toggle {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--space-2);
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-3);
+}
+
+.grid-toggle[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  color: var(--accent);
+}
+
 .menu-toggle {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -305,7 +324,7 @@
 
 .prose > h1 {
   font-size: 2rem;
-  line-height: 2.5rem;
+  line-height: 2.25rem;
   margin-top: 0;
 }
 
@@ -318,7 +337,7 @@
 
 .prose > h3 {
   font-size: 1.25rem;
-  line-height: 1.75rem;
+  line-height: 1.5rem;
 }
 
 .prose > p,
@@ -326,7 +345,7 @@
 .prose > blockquote,
 .prose > td,
 .prose > th {
-  line-height: 1.75rem;
+  line-height: 1.5rem;
 }
 
 .prose > ul,

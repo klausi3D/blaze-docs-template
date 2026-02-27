@@ -324,6 +324,7 @@ function renderPageHtml({
     <div class="topbar-inner">
       <button class="menu-toggle" data-menu-toggle type="button" aria-label="Toggle navigation">Menu</button>
       <a class="brand" href="${escapeAttribute(relativeHref(page.outputPath, ""))}">Blaze Docs</a>
+      <button class="grid-toggle" data-grid-toggle type="button" aria-label="Toggle typography grid" aria-pressed="false">Grid</button>
       <div class="search-wrap">
         <label class="sr-only" for="site-search">Search documentation</label>
         <input class="search-input" id="site-search" data-search-input type="search" placeholder="Search docs" autocomplete="off" spellcheck="false">
