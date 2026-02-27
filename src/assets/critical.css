@@ -1,41 +1,45 @@
 :root {
   color-scheme: light;
 
-  --bg: #f3f4f2;
-  --surface: #ffffff;
-  --line: #d1d6d1;
-  --line-strong: #b8bfb8;
-  --text: #121513;
-  --muted: #4f5752;
-  --accent: #1d5d67;
-  --accent-soft: #dcecf0;
+  --bg: #eeeee9;
+  --surface: #f8f8f4;
+  --text: #232622;
+  --text-strong: #151714;
+  --muted: #5d625c;
+  --line: #c4c9c1;
+  --line-strong: #a7aea4;
+  --accent: #b25524;
+  --accent-soft: #ebded4;
+  --link: #24576b;
+  --focus: #0d5e7f;
 
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --step--1: clamp(0.89rem, 0.86rem + 0.1vw, 0.96rem);
-  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.08rem);
-  --step-1: clamp(1.2rem, 1.1rem + 0.34vw, 1.34rem);
-  --step-2: clamp(1.46rem, 1.29rem + 0.54vw, 1.68rem);
-  --step-3: clamp(1.8rem, 1.56rem + 0.78vw, 2.16rem);
+  --unit: clamp(0.235rem, 0.225rem + 0.05vw, 0.27rem);
+  --rhythm: calc(var(--unit) * 6);
+  --space-1: calc(var(--unit) * 1);
+  --space-2: calc(var(--unit) * 2);
+  --space-3: calc(var(--unit) * 3);
+  --space-4: calc(var(--unit) * 4);
+  --space-5: calc(var(--unit) * 6);
+  --space-6: calc(var(--unit) * 8);
+  --space-8: calc(var(--unit) * 12);
 
-  --rhythm: clamp(1.4rem, 1.33rem + 0.24vw, 1.56rem);
-  --space-1: calc(var(--rhythm) * 0.25);
-  --space-2: calc(var(--rhythm) * 0.5);
-  --space-3: calc(var(--rhythm) * 0.75);
-  --space-4: var(--rhythm);
-  --space-5: calc(var(--rhythm) * 1.5);
-  --space-6: calc(var(--rhythm) * 2);
-  --space-8: calc(var(--rhythm) * 3);
+  --step--1: clamp(0.84rem, 0.81rem + 0.12vw, 0.92rem);
+  --step-0: clamp(0.98rem, 0.94rem + 0.2vw, 1.08rem);
+  --step-1: clamp(1.24rem, 1.14rem + 0.38vw, 1.42rem);
+  --step-2: clamp(1.58rem, 1.4rem + 0.62vw, 1.9rem);
+  --step-3: clamp(2.1rem, 1.8rem + 0.98vw, 2.58rem);
 
-  --measure: 64ch;
-  --shell-max: 88rem;
+  --measure: 67ch;
+  --shell-max: 96rem;
 
   --grid-columns: 12;
   --grid-gutter: 1rem;
-  --grid-color-baseline: rgba(29, 93, 103, 0.16);
-  --grid-color-columns: rgba(29, 93, 103, 0.08);
+  --grid-color-baseline: rgba(16, 17, 17, 0.13);
+  --grid-color-columns: rgba(16, 17, 17, 0.06);
 }
 
 * {
@@ -50,7 +54,6 @@ body {
 
 html {
   -webkit-text-size-adjust: 100%;
-  font-size: 100%;
 }
 
 body {
@@ -64,7 +67,18 @@ body {
 }
 
 a {
-  color: var(--accent);
+  color: var(--link);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+}
+
+a:hover {
+  color: color-mix(in srgb, var(--link) 80%, black);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 img,
