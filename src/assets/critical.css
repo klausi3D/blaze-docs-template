@@ -1,50 +1,56 @@
 :root {
   color-scheme: light;
 
-  --bg: #ebeae4;
-  --surface: #f8f7f3;
-  --surface-rail: #f2f1eb;
-  --surface-elevated: #fcfcf9;
-  --text: #272a26;
-  --text-strong: #181a17;
-  --muted: #676c65;
-  --line: #c4c9c0;
-  --line-strong: #a8afa4;
-  --accent: #b65d2d;
-  --accent-soft: #ede1d7;
-  --link: #1f4f66;
-  --focus: #0f5f7f;
+  /* Neutral palette - no warm or cool tints */
+  --bg: #f5f5f5;
+  --surface: #fff;
+  --surface-rail: #fafafa;
+  --surface-elevated: #fff;
+  --text: #333;
+  --text-strong: #111;
+  --muted: #666;
+  --line: #ddd;
+  --line-strong: #bbb;
+  --accent: #333;
+  --accent-soft: #f0f0f0;
+  --link: #111;
+  --focus: #111;
 
+  /* Typography */
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --unit: clamp(0.235rem, 0.226rem + 0.05vw, 0.27rem);
-  --rhythm: calc(var(--unit) * 6);
-  --space-1: calc(var(--unit) * 1);
-  --space-2: calc(var(--unit) * 2);
-  --space-3: calc(var(--unit) * 3);
-  --space-4: calc(var(--unit) * 4);
-  --space-5: calc(var(--unit) * 6);
-  --space-6: calc(var(--unit) * 8);
-  --space-8: calc(var(--unit) * 12);
+  /* Spacing based on line-height */
+  --rhythm: 1.625rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
 
-  --step--1: clamp(0.84rem, 0.82rem + 0.1vw, 0.92rem);
-  --step-0: clamp(1rem, 0.97rem + 0.16vw, 1.08rem);
-  --step-1: clamp(1.2rem, 1.12rem + 0.3vw, 1.36rem);
-  --step-2: clamp(1.48rem, 1.34rem + 0.52vw, 1.76rem);
-  --step-3: clamp(1.82rem, 1.6rem + 0.76vw, 2.22rem);
+  /* Type scale - minor third */
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.2rem;
+  --step-2: 1.44rem;
+  --step-3: 1.728rem;
 
-  --measure: 66ch;
-  --shell-max: 96rem;
-  --radius-sm: 0.4rem;
-  --radius-md: 0.65rem;
-  --shadow-soft: 0 1px 0 rgba(24, 26, 23, 0.04);
+  /* Layout */
+  --measure: 65ch;
+  --shell-max: 72rem;
+  --radius: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --shadow-soft: none;
 
+  /* Grid debug */
   --grid-columns: 12;
   --grid-gutter: 1rem;
-  --grid-color-baseline: rgba(16, 17, 17, 0.13);
-  --grid-color-columns: rgba(16, 17, 17, 0.06);
+  --grid-color-baseline: rgba(0, 0, 0, 0.08);
+  --grid-color-columns: rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -68,22 +74,23 @@ body {
   font-size: var(--step-0);
   line-height: var(--rhythm);
   font-kerning: normal;
-  position: relative;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 a {
   color: var(--link);
-  text-decoration-thickness: 0.08em;
-  text-underline-offset: 0.12em;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
 }
 
 a:hover {
-  color: color-mix(in srgb, var(--link) 80%, black);
+  text-decoration-thickness: 2px;
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 1px solid var(--text-strong);
   outline-offset: 2px;
 }
 
@@ -94,14 +101,14 @@ video {
 }
 
 .skip-link {
-  left: var(--space-3);
+  left: var(--space-4);
   position: absolute;
-  top: -6rem;
+  top: -4rem;
   z-index: 50;
 }
 
 .skip-link:focus {
-  top: var(--space-3);
+  top: var(--space-4);
 }
 
 .sr-only {
