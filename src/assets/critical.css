@@ -1,18 +1,19 @@
 :root {
   color-scheme: light;
 
-  --bg: #efeee8;
-  --surface: #f7f6f2;
-  --surface-rail: #f1f0ea;
-  --text: #252824;
-  --text-strong: #171916;
-  --muted: #5f645d;
-  --line: #c2c7bf;
-  --line-strong: #a6ada3;
-  --accent: #b25524;
-  --accent-soft: #ebddd2;
-  --link: #245165;
-  --focus: #0d5e7f;
+  --bg: #ebeae4;
+  --surface: #f8f7f3;
+  --surface-rail: #f2f1eb;
+  --surface-elevated: #fcfcf9;
+  --text: #272a26;
+  --text-strong: #181a17;
+  --muted: #676c65;
+  --line: #c4c9c0;
+  --line-strong: #a8afa4;
+  --accent: #b65d2d;
+  --accent-soft: #ede1d7;
+  --link: #1f4f66;
+  --focus: #0f5f7f;
 
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
@@ -36,6 +37,9 @@
 
   --measure: 66ch;
   --shell-max: 96rem;
+  --radius-sm: 0.4rem;
+  --radius-md: 0.65rem;
+  --shadow-soft: 0 1px 0 rgba(24, 26, 23, 0.04);
 
   --grid-columns: 12;
   --grid-gutter: 1rem;

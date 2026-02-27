@@ -47,9 +47,10 @@
 }
 
 .topbar {
-  backdrop-filter: blur(6px);
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
   border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -62,7 +63,7 @@
   margin: 0 auto;
   max-width: var(--shell-max);
   min-height: calc(var(--space-6) + var(--space-2));
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-3);
 }
 
 .brand {
@@ -77,9 +78,9 @@
 
 .grid-toggle,
 .menu-toggle {
-  background: var(--surface);
+  background: var(--surface-elevated);
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   color: var(--muted);
   font-family: var(--font-sans);
   font-size: var(--step--1);
@@ -106,15 +107,15 @@
 
 .search-wrap {
   margin-left: auto;
-  max-width: 17rem;
+  max-width: 18rem;
   position: relative;
   width: 100%;
 }
 
 .search-input {
-  background: var(--surface);
+  background: var(--surface-elevated);
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   color: var(--text-strong);
   font-family: var(--font-sans);
   font-size: var(--step--1);
@@ -125,13 +126,14 @@
 }
 
 .search-input:focus {
-  border-color: var(--line-strong);
+  border-color: var(--focus);
   outline: none;
 }
 
 .search-results {
   background: var(--surface-rail);
   border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
   display: none;
   list-style: none;
   margin: var(--space-1) 0 0;
@@ -182,17 +184,19 @@
 
 .site-shell {
   display: grid;
-  gap: 0;
-  grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+  gap: var(--space-3);
+  grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr);
   margin: 0 auto;
   max-width: var(--shell-max);
   min-height: calc(100vh - var(--space-8));
+  padding: var(--space-3);
 }
 
 .sidebar {
   align-self: stretch;
   background: var(--surface-rail);
-  border-right: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   padding: var(--space-4) var(--space-3) var(--space-6);
 }
 
@@ -229,7 +233,8 @@
   font-family: var(--font-sans);
   font-size: var(--step--1);
   line-height: calc(var(--rhythm) * 0.78);
-  padding: 0;
+  padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-sm);
   text-decoration: none;
 }
 
@@ -242,34 +247,36 @@
 .nav-link:focus,
 .toc-link:focus {
   color: var(--text-strong);
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
   outline: none;
-  text-decoration: underline;
-  text-decoration-thickness: 0.06em;
 }
 
 .nav-link.is-active {
-  border-left: 2px solid var(--line-strong);
+  background: var(--accent-soft);
+  border-left: 2px solid var(--accent);
   color: var(--text-strong);
   font-weight: 600;
-  margin-left: calc(var(--space-1) * -1);
-  padding-left: var(--space-1);
+  padding-left: calc(var(--space-1) - 2px);
 }
 
 .content-column {
   display: grid;
-  gap: 0;
+  gap: var(--space-3);
   grid-template-columns: minmax(0, 1fr) minmax(12rem, 15rem);
 }
 
 .doc-panel {
   background: var(--surface);
-  border-right: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   padding: var(--space-6) clamp(var(--space-4), 4vw, var(--space-8));
 }
 
 .toc {
   align-self: start;
   background: var(--surface-rail);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   max-height: calc(100vh - var(--space-8));
   overflow: hidden;
   padding: var(--space-4) var(--space-3);
@@ -309,21 +316,22 @@
 
 .prose > h1 {
   font-size: var(--step-2);
-  line-height: calc(var(--rhythm) * 1.25);
+  line-height: calc(var(--rhythm) * 1.18);
   margin-bottom: var(--space-4);
 }
 
 .prose > h2 {
   border-top: 1px solid var(--line);
   font-size: var(--step-1);
-  line-height: calc(var(--rhythm) * 0.98);
+  line-height: calc(var(--rhythm) * 0.95);
   margin-top: var(--space-8);
   padding-top: var(--space-4);
 }
 
 .prose > h3 {
   font-size: var(--step-0);
-  line-height: var(--rhythm);
+  font-weight: 600;
+  line-height: calc(var(--rhythm) * 0.9);
   margin-top: var(--space-5);
 }
 
@@ -347,7 +355,7 @@
 .prose td,
 .prose th {
   font-size: var(--step-0);
-  letter-spacing: 0.005em;
+  letter-spacing: 0.004em;
   line-height: var(--rhythm);
 }
 
@@ -387,10 +395,11 @@
 }
 
 .prose > pre {
-  background: #232628;
-  border: 1px solid #39403f;
-  border-left: 3px solid #6f7875;
-  color: #e0e5df;
+  background: #eaede7;
+  border: 1px solid #c3c8be;
+  border-left: 3px solid #8f9890;
+  border-radius: var(--radius-sm);
+  color: #202320;
   font-size: var(--step--1);
   line-height: calc(var(--rhythm) * 0.82);
   overflow: auto;
@@ -413,7 +422,7 @@
 }
 
 .prose > table th {
-  background: #e4e7df;
+  background: #e7eae2;
   font-family: var(--font-sans);
   font-weight: 600;
 }
@@ -428,6 +437,7 @@
 .prose :not(pre) > code {
   background: #e5e8e0;
   border: 1px solid var(--line);
+  border-radius: 0.2rem;
   padding: 0.02rem 0.24rem;
 }
 
@@ -460,11 +470,14 @@
 }
 
 .prose > blockquote {
-  border-left: 2px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface-rail) 75%, transparent);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius-sm);
   color: var(--text);
   margin-left: 0;
   padding-bottom: var(--space-1);
   padding-left: var(--space-3);
+  padding-top: var(--space-1);
 }
 
 .prose > blockquote p + p {
@@ -539,18 +552,20 @@
 @media (max-width: 74rem) {
   .site-shell {
     grid-template-columns: minmax(10rem, 13rem) minmax(0, 1fr);
+    gap: var(--space-2);
+    padding: var(--space-2);
   }
 
   .content-column {
     grid-template-columns: 1fr;
+    gap: var(--space-2);
   }
 
   .doc-panel {
-    border-right: 0;
+    border-right: 1px solid var(--line);
   }
 
   .toc {
-    border-top: 1px solid var(--line);
     display: block;
     max-height: none;
     position: static;
@@ -576,11 +591,12 @@
 
   .site-shell {
     grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding: var(--space-2);
   }
 
   .sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
+    border-right: 1px solid var(--line);
     display: none;
     padding: var(--space-3);
   }
