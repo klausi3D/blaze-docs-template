@@ -61,6 +61,13 @@ async function importBook() {
     chapterLinks.push(`- [${chapterTitle}](./${fileName})`);
   }
 
+  const previewSection = sections[0];
+  const previewParagraphs = extractParagraphs(previewSection.body, 7);
+  const previewBlocks = [];
+  for (const paragraph of previewParagraphs) {
+    previewBlocks.push(paragraph, "");
+  }
+
   const indexMd = [
     "---",
     `title: \"${escapeYaml(bookTitle)} (Sample Book)\"`,
@@ -76,6 +83,13 @@ async function importBook() {
     `Source: Project Gutenberg eBook #${bookId}`,
     "",
     "This section is generated placeholder content for testing documentation readability, rhythm, and long-form layout.",
+    "",
+    "## Reading sample",
+    "",
+    `### ${previewSection.heading}`,
+    "",
+    ...previewBlocks,
+    `[Continue chapter 1](./${sections[0].slug}.md)`,
     "",
     "## Chapters",
     "",
@@ -215,6 +229,43 @@ function toMarkdownParagraphs(text) {
   flushParagraph();
 
   return blocks.join("\n\n");
+}
+
+function extractParagraphs(text, maxParagraphs) {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  const paragraphs = [];
+  let chunk = [];
+
+  const flush = () => {
+    if (chunk.length === 0) {
+      return;
+    }
+    const paragraph = chunk.join(" ").replace(/\s+/g, " ").trim();
+    if (paragraph.length > 0) {
+      paragraphs.push(paragraph);
+    }
+    chunk = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      flush();
+      if (paragraphs.length >= maxParagraphs) {
+        break;
+      }
+      continue;
+    }
+
+    if (isDiscardLine(line) || isStandaloneHeading(line)) {
+      continue;
+    }
+
+    chunk.push(line);
+  }
+
+  flush();
+  return paragraphs.slice(0, maxParagraphs);
 }
 
 function isStandaloneHeading(line) {

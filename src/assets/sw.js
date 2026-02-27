@@ -41,6 +41,14 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(staleWhileRevalidate(event.request));
 });
 
+self.addEventListener("message", (event) => {
+  const payload = event.data;
+  if (!payload || payload.type !== "SKIP_WAITING") {
+    return;
+  }
+  void self.skipWaiting();
+});
+
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {

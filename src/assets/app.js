@@ -50,15 +50,50 @@ if (searchInput && searchResults) {
 }
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
+  const reloadFlag = "blaze-sw-controller-reloaded";
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    try {
+      if (sessionStorage.getItem(reloadFlag) === "1") {
+        return;
+      }
+      sessionStorage.setItem(reloadFlag, "1");
+    } catch {
+      // Ignore storage failures and continue with reload.
+    }
+    window.location.reload();
+  });
+
   window.addEventListener("load", () => {
     const swPath = document.documentElement.dataset.sw;
     if (!swPath) {
       return;
     }
     const swUrl = resolveFromRoot(swPath);
-    navigator.serviceWorker.register(swUrl, { scope: rootUrl.pathname }).catch(() => {
-      // Offline cache is an enhancement. Ignore registration failures.
-    });
+    navigator.serviceWorker
+      .register(swUrl, { scope: rootUrl.pathname })
+      .then(async (registration) => {
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+
+        registration.addEventListener("updatefound", () => {
+          const installing = registration.installing;
+          if (!installing) {
+            return;
+          }
+
+          installing.addEventListener("statechange", () => {
+            if (installing.state === "installed" && navigator.serviceWorker.controller) {
+              installing.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+
+        await registration.update();
+      })
+      .catch(() => {
+        // Offline cache is an enhancement. Ignore registration failures.
+      });
   });
 }
 
