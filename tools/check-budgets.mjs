@@ -57,6 +57,18 @@ if (totalJsBytes > maxTotalJsBytes) {
   failures.push(`Total JS: ${totalJsBytes} > ${maxTotalJsBytes} bytes`);
 }
 
+const allFonts = assetFiles
+  .filter((file) => file.endsWith(".woff2") || file.endsWith(".woff") || file.endsWith(".ttf"))
+  .map((file) => path.join(assetDir, file));
+const fontFilesFromSubdirs = await collectFilesByExtensions(assetDir, [".woff2", ".woff", ".ttf"]);
+const uniqueFontFiles = [...new Set([...allFonts, ...fontFilesFromSubdirs])];
+const totalFontBytes = await sumFileSizes(uniqueFontFiles);
+const maxTotalFontBytes = 500_000;
+lines.push(`${(totalFontBytes <= maxTotalFontBytes ? "OK" : "FAIL").padEnd(4)} Total Fonts    ${String(totalFontBytes).padStart(7)} / ${maxTotalFontBytes}`);
+if (totalFontBytes > maxTotalFontBytes) {
+  failures.push(`Total fonts: ${totalFontBytes} > ${maxTotalFontBytes} bytes`);
+}
+
 const htmlFiles = await collectHtmlFiles(distDir);
 const maxHtmlBytes = 70_000;
 for (const htmlPath of htmlFiles) {
@@ -103,6 +115,22 @@ async function collectHtmlFiles(dir) {
     if (entry.isDirectory()) {
       results.push(...(await collectHtmlFiles(absPath)));
     } else if (entry.name.endsWith(".html")) {
+      results.push(absPath);
+    }
+  }
+  return results;
+}
+
+async function collectFilesByExtensions(dir, extensions) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const results = [];
+  for (const entry of entries) {
+    const absPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...(await collectFilesByExtensions(absPath, extensions)));
+      continue;
+    }
+    if (extensions.some((ext) => entry.name.endsWith(ext))) {
       results.push(absPath);
     }
   }

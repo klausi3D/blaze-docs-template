@@ -9,6 +9,7 @@ A performance-first documentation template for GitHub Pages.
 - Optional features loaded lazily (search index + worker).
 - Hashed assets and offline cache support.
 - Enforced performance budgets in CI.
+- Typographic rhythm with IBM Plex Serif/Sans/Mono and baseline-aligned spacing.
 
 ## Quick Start
 
@@ -36,6 +37,12 @@ npm run check:budgets
 npm run preview
 ```
 
+5. Generate placeholder long-form content from Project Gutenberg:
+
+```bash
+npm run seed:book
+```
+
 ## Content Authoring
 
 Add markdown files in `content/`.
@@ -46,6 +53,8 @@ Front matter fields:
 - `description`: optional meta description
 - `order`: nav order (lower first)
 - `slug`: optional output path override
+- `nav_exclude`: optional boolean to hide a page from sidebar navigation
+- `search_exclude`: optional boolean to remove a page from generated search index
 
 `index.md` maps to `/`.
 Every other page maps to `/your-slug/`.
@@ -63,4 +72,4 @@ It builds `dist/` and deploys with GitHub Pages Actions (not Jekyll).
 - Lazy, worker-based search.
 - Service worker stale-while-revalidate for static assets.
 - Budget checks on JS/CSS/search index size.
-
+- Self-hosted IBM Plex fonts with `font-display: swap`.

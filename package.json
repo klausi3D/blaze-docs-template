@@ -10,6 +10,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "node tools/build.mjs",
+    "seed:book": "node tools/import-gutenberg.mjs",
     "check:budgets": "node tools/check-budgets.mjs",
     "verify": "npm run build && npm run check:budgets",
     "preview": "python3 -m http.server 4173 --directory dist"

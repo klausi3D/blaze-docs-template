@@ -12,6 +12,7 @@ const contentDir = path.join(rootDir, "content");
 const assetSourceDir = path.join(rootDir, "src", "assets");
 const distDir = path.join(rootDir, "dist");
 const distAssetDir = path.join(distDir, "assets");
+const fontSourceDir = path.join(assetSourceDir, "fonts");
 
 await build();
 
@@ -37,18 +38,21 @@ async function build() {
   const appJs = await readUtf8(path.join(assetSourceDir, "app.js"));
   const searchWorkerJs = await readUtf8(path.join(assetSourceDir, "search-worker.js"));
   await fs.copyFile(path.join(assetSourceDir, "favicon.svg"), path.join(distAssetDir, "favicon.svg"));
+  const copiedFontAssets = await copyDirectory(fontSourceDir, path.join(distAssetDir, "fonts"));
 
   const appCssFile = await writeHashedAsset("app", "css", appCss);
   const appJsFile = await writeHashedAsset("app", "js", appJs);
   const searchWorkerFile = await writeHashedAsset("search-worker", "js", searchWorkerJs);
 
-  const searchIndexDocs = pages.map((page) => ({
-    title: page.title,
-    url: page.urlPath || "./",
-    headings: page.headings.map((heading) => heading.text).join(" "),
-    excerpt: excerptText(page.searchText, 140),
-    text: page.searchText,
-  }));
+  const searchIndexDocs = pages
+    .filter((page) => !page.searchExclude)
+    .map((page) => ({
+      title: page.title,
+      url: page.urlPath || "./",
+      headings: page.headings.map((heading) => heading.text).join(" "),
+      excerpt: excerptText(page.searchText, 140),
+      text: page.searchText,
+    }));
 
   const searchIndexFile = await writeHashedAsset(
     "search-index",
@@ -66,6 +70,7 @@ async function build() {
     `assets/${searchWorkerFile}`,
     `assets/${searchIndexFile}`,
     "assets/favicon.svg",
+    ...copiedFontAssets.map((fontPath) => `assets/${fontPath}`),
   ];
 
   const buildHash = hashOf(JSON.stringify(precachePaths)).slice(0, 12);
@@ -106,6 +111,8 @@ async function build() {
       headings: [],
       searchText: "",
       slug: "404",
+      navExclude: true,
+      searchExclude: true,
     },
     orderedPages,
     criticalCss,
@@ -149,6 +156,8 @@ async function loadPages() {
     const description = cleanText(parsed.data.description);
     const orderNumber = Number(parsed.data.order);
     const order = Number.isFinite(orderNumber) ? orderNumber : 999;
+    const navExclude = parseBoolean(parsed.data.nav_exclude, false);
+    const searchExclude = parseBoolean(parsed.data.search_exclude, false);
 
     pages.push({
       sourceRel,
@@ -162,6 +171,8 @@ async function loadPages() {
       bodyHtml: "",
       headings: [],
       searchText: "",
+      navExclude,
+      searchExclude,
     });
   }
 
@@ -265,8 +276,11 @@ function renderPageHtml({
   const siteRoot = siteRootFromOutputPath(page.outputPath);
   const cssHref = relativeHref(page.outputPath, `assets/${appCssFile}`);
   const jsHref = relativeHref(page.outputPath, `assets/${appJsFile}`);
+  const serifFontHref = relativeHref(page.outputPath, "assets/fonts/IBMPlexSerif-Regular.woff2");
+  const sansFontHref = relativeHref(page.outputPath, "assets/fonts/IBMPlexSans-Regular.woff2");
+  const navPages = orderedPages.filter((item) => !item.navExclude);
 
-  const navLinks = orderedPages
+  const navLinks = navPages
     .map((item) => {
       const href = relativeHref(page.outputPath, item.urlPath || "");
       const activeClass = item.slug === page.slug ? " is-active" : "";
@@ -297,6 +311,8 @@ function renderPageHtml({
   ${robots}
   <style>${criticalCss}</style>
   <link rel="preload" href="${escapeAttribute(cssHref)}" as="style">
+  <link rel="preload" href="${escapeAttribute(serifFontHref)}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="${escapeAttribute(sansFontHref)}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="${escapeAttribute(cssHref)}">
   <link rel="icon" href="${escapeAttribute(relativeHref(page.outputPath, "assets/favicon.svg"))}" type="image/svg+xml">
   <script type="speculationrules">{"prefetch":[{"source":"document","where":{"selector_matches":"a[data-prefetch]"},"eagerness":"moderate"}]}</script>
@@ -322,7 +338,9 @@ function renderPageHtml({
     </aside>
     <div class="content-column">
       <main id="main-content" class="doc-panel">
-        ${page.bodyHtml}
+        <article class="prose">
+          ${page.bodyHtml}
+        </article>
         <p class="doc-footer">Generated at ${escapeHtml(generatedAt)}</p>
       </main>
       <aside class="toc" aria-label="On this page">
@@ -499,4 +517,40 @@ async function listFilesRecursive(dir) {
 
 async function readUtf8(filePath) {
   return fs.readFile(filePath, "utf8");
+}
+
+function parseBoolean(value, fallback = false) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") {
+      return true;
+    }
+    if (normalized === "false") {
+      return false;
+    }
+  }
+  return fallback;
+}
+
+async function copyDirectory(sourceDir, targetDir) {
+  try {
+    await fs.access(sourceDir);
+  } catch {
+    return [];
+  }
+
+  await fs.mkdir(targetDir, { recursive: true });
+  const files = await listFilesRecursive(sourceDir);
+  const copied = [];
+  for (const sourceFile of files) {
+    const relativeFromSource = toPosix(path.relative(sourceDir, sourceFile));
+    const destinationFile = path.join(targetDir, relativeFromSource);
+    await fs.mkdir(path.dirname(destinationFile), { recursive: true });
+    await fs.copyFile(sourceFile, destinationFile);
+    copied.push(`fonts/${relativeFromSource}`);
+  }
+  return copied;
 }

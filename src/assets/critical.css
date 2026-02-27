@@ -1,12 +1,30 @@
 :root {
   color-scheme: light;
-  --bg: #f8fafc;
+
+  --bg: #f7f7f5;
   --panel: #ffffff;
-  --line: #d9e1ec;
-  --text: #0f172a;
-  --muted: #475569;
-  --accent: #0f766e;
-  --accent-soft: #d1fae5;
+  --line: #d9ddd8;
+  --text: #1d2321;
+  --muted: #515f59;
+  --accent: #0c6a63;
+  --accent-soft: #d9f2ef;
+
+  --baseline: 0.25rem;
+  --space-1: calc(var(--baseline) * 1);
+  --space-2: calc(var(--baseline) * 2);
+  --space-3: calc(var(--baseline) * 3);
+  --space-4: calc(var(--baseline) * 4);
+  --space-5: calc(var(--baseline) * 5);
+  --space-6: calc(var(--baseline) * 6);
+  --space-8: calc(var(--baseline) * 8);
+  --space-10: calc(var(--baseline) * 10);
+  --space-12: calc(var(--baseline) * 12);
+
+  --measure: 74ch;
+
+  --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 * {
@@ -22,8 +40,10 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  line-height: 1.55;
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.75rem;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -31,13 +51,13 @@ a {
 }
 
 .skip-link {
-  left: 0.75rem;
+  left: var(--space-3);
   position: absolute;
   top: -8rem;
 }
 
 .skip-link:focus {
-  top: 0.75rem;
+  top: var(--space-3);
 }
 
 .sr-only {
