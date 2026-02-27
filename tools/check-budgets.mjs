@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { brotliCompressSync, constants as zlibConstants } from "node:zlib";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,11 +10,37 @@ const distDir = path.join(rootDir, "dist");
 const assetDir = path.join(distDir, "assets");
 
 const budgets = [
-  { label: "Main CSS", pattern: /^app\.[a-f0-9]{10}\.css$/, maxBytes: 20_000 },
-  { label: "Main JS", pattern: /^app\.[a-f0-9]{10}\.js$/, maxBytes: 18_000 },
-  { label: "Search worker", pattern: /^search-worker\.[a-f0-9]{10}\.js$/, maxBytes: 12_000 },
-  { label: "Search index", pattern: /^search-index\.[a-f0-9]{10}\.json$/, maxBytes: 120_000 },
-  { label: "Service worker", pattern: /^sw\.[a-f0-9]{10}\.js$/, maxBytes: 14_000, root: true },
+  {
+    label: "Main CSS",
+    pattern: /^app\.[a-f0-9]{10}\.css$/,
+    maxBytes: 20_000,
+    maxBrotliBytes: 2_400,
+  },
+  {
+    label: "Main JS",
+    pattern: /^app\.[a-f0-9]{10}\.js$/,
+    maxBytes: 18_000,
+    maxBrotliBytes: 3_200,
+  },
+  {
+    label: "Search worker",
+    pattern: /^search-worker\.[a-f0-9]{10}\.js$/,
+    maxBytes: 12_000,
+    maxBrotliBytes: 1_200,
+  },
+  {
+    label: "Search index",
+    pattern: /^search-index\.[a-f0-9]{10}\.json$/,
+    maxBytes: 120_000,
+    maxBrotliBytes: 6_000,
+  },
+  {
+    label: "Service worker",
+    pattern: /^sw\.[a-f0-9]{10}\.js$/,
+    maxBytes: 14_000,
+    maxBrotliBytes: 2_000,
+    root: true,
+  },
 ];
 
 await assertExists(distDir, "dist directory not found. Run `npm run build` first.");
@@ -24,6 +51,7 @@ const rootFiles = await fs.readdir(distDir);
 
 const failures = [];
 const lines = [];
+const matchedBudgetStats = new Map();
 
 for (const budget of budgets) {
   const files = budget.root ? rootFiles : assetFiles;
@@ -35,46 +63,130 @@ for (const budget of budgets) {
   }
 
   const filePath = budget.root ? path.join(distDir, matched) : path.join(assetDir, matched);
-  const { size } = await fs.stat(filePath);
-  const status = size <= budget.maxBytes ? "OK" : "FAIL";
+  const buffer = await fs.readFile(filePath);
+  const rawBytes = buffer.length;
+  const brotliBytes = getBrotliSize(buffer);
 
-  lines.push(`${status.padEnd(4)} ${budget.label.padEnd(14)} ${String(size).padStart(7)} / ${budget.maxBytes}`);
+  matchedBudgetStats.set(budget.label, { filePath, rawBytes, brotliBytes });
 
-  if (size > budget.maxBytes) {
-    failures.push(`${budget.label}: ${size} > ${budget.maxBytes} bytes`);
+  const rawOk = rawBytes <= budget.maxBytes;
+  const brotliOk = brotliBytes <= budget.maxBrotliBytes;
+  const status = rawOk && brotliOk ? "OK" : "FAIL";
+  lines.push(
+    `${status.padEnd(4)} ${budget.label.padEnd(14)} raw ${String(rawBytes).padStart(7)} / ${budget.maxBytes} br ${String(brotliBytes).padStart(6)} / ${budget.maxBrotliBytes}`,
+  );
+
+  if (!rawOk) {
+    failures.push(`${budget.label} (raw): ${rawBytes} > ${budget.maxBytes} bytes`);
+  }
+  if (!brotliOk) {
+    failures.push(`${budget.label} (br): ${brotliBytes} > ${budget.maxBrotliBytes} bytes`);
   }
 }
 
-const allJs = [
+const jsFiles = [
   ...assetFiles.filter((file) => file.endsWith(".js")).map((file) => path.join(assetDir, file)),
   ...rootFiles.filter((file) => file.endsWith(".js")).map((file) => path.join(distDir, file)),
 ];
-
-const totalJsBytes = await sumFileSizes(allJs);
+const totalJs = await sumFileSizesWithBrotli(jsFiles);
 const maxTotalJsBytes = 48_000;
-lines.push(`${(totalJsBytes <= maxTotalJsBytes ? "OK" : "FAIL").padEnd(4)} Total JS       ${String(totalJsBytes).padStart(7)} / ${maxTotalJsBytes}`);
-if (totalJsBytes > maxTotalJsBytes) {
-  failures.push(`Total JS: ${totalJsBytes} > ${maxTotalJsBytes} bytes`);
+const maxTotalJsBrotliBytes = 20_000;
+const totalJsOk = totalJs.rawBytes <= maxTotalJsBytes && totalJs.brotliBytes <= maxTotalJsBrotliBytes;
+lines.push(
+  `${(totalJsOk ? "OK" : "FAIL").padEnd(4)} Total JS       raw ${String(totalJs.rawBytes).padStart(7)} / ${maxTotalJsBytes} br ${String(totalJs.brotliBytes).padStart(6)} / ${maxTotalJsBrotliBytes}`,
+);
+if (totalJs.rawBytes > maxTotalJsBytes) {
+  failures.push(`Total JS (raw): ${totalJs.rawBytes} > ${maxTotalJsBytes} bytes`);
+}
+if (totalJs.brotliBytes > maxTotalJsBrotliBytes) {
+  failures.push(`Total JS (br): ${totalJs.brotliBytes} > ${maxTotalJsBrotliBytes} bytes`);
 }
 
-const allFonts = assetFiles
+const topLevelFontFiles = assetFiles
   .filter((file) => file.endsWith(".woff2") || file.endsWith(".woff") || file.endsWith(".ttf"))
   .map((file) => path.join(assetDir, file));
-const fontFilesFromSubdirs = await collectFilesByExtensions(assetDir, [".woff2", ".woff", ".ttf"]);
-const uniqueFontFiles = [...new Set([...allFonts, ...fontFilesFromSubdirs])];
-const totalFontBytes = await sumFileSizes(uniqueFontFiles);
+const nestedFontFiles = await collectFilesByExtensions(assetDir, [".woff2", ".woff", ".ttf"]);
+const allFontFiles = [...new Set([...topLevelFontFiles, ...nestedFontFiles])];
+const totalFontBytes = await sumRawFileSizes(allFontFiles);
 const maxTotalFontBytes = 500_000;
-lines.push(`${(totalFontBytes <= maxTotalFontBytes ? "OK" : "FAIL").padEnd(4)} Total Fonts    ${String(totalFontBytes).padStart(7)} / ${maxTotalFontBytes}`);
+const totalFontsOk = totalFontBytes <= maxTotalFontBytes;
+lines.push(
+  `${(totalFontsOk ? "OK" : "FAIL").padEnd(4)} Total Fonts    ${String(totalFontBytes).padStart(7)} / ${maxTotalFontBytes}`,
+);
 if (totalFontBytes > maxTotalFontBytes) {
   failures.push(`Total fonts: ${totalFontBytes} > ${maxTotalFontBytes} bytes`);
 }
 
 const htmlFiles = await collectHtmlFiles(distDir);
 const maxHtmlBytes = 70_000;
+const maxHtmlBrotliBytes = 20_000;
+const maxTotalHtmlBrotliBytes = 35_000;
+let totalHtmlBrotliBytes = 0;
+let largestHtml = { relPath: "", rawBytes: 0, brotliBytes: 0 };
+
 for (const htmlPath of htmlFiles) {
-  const { size } = await fs.stat(htmlPath);
-  if (size > maxHtmlBytes) {
-    failures.push(`${path.relative(distDir, htmlPath)}: ${size} > ${maxHtmlBytes} bytes`);
+  const relPath = path.relative(distDir, htmlPath);
+  const buffer = await fs.readFile(htmlPath);
+  const rawBytes = buffer.length;
+  const brotliBytes = getBrotliSize(buffer);
+  totalHtmlBrotliBytes += brotliBytes;
+
+  if (brotliBytes > largestHtml.brotliBytes) {
+    largestHtml = { relPath, rawBytes, brotliBytes };
+  }
+
+  if (rawBytes > maxHtmlBytes) {
+    failures.push(`${relPath} (raw): ${rawBytes} > ${maxHtmlBytes} bytes`);
+  }
+  if (brotliBytes > maxHtmlBrotliBytes) {
+    failures.push(`${relPath} (br): ${brotliBytes} > ${maxHtmlBrotliBytes} bytes`);
+  }
+}
+
+const largestHtmlOk = largestHtml.brotliBytes <= maxHtmlBrotliBytes;
+lines.push(
+  `${(largestHtmlOk ? "OK" : "FAIL").padEnd(4)} Largest HTML   br ${String(largestHtml.brotliBytes).padStart(6)} / ${maxHtmlBrotliBytes} (${largestHtml.relPath || "n/a"})`,
+);
+
+const totalHtmlOk = totalHtmlBrotliBytes <= maxTotalHtmlBrotliBytes;
+lines.push(
+  `${(totalHtmlOk ? "OK" : "FAIL").padEnd(4)} Total HTML (br) ${String(totalHtmlBrotliBytes).padStart(7)} / ${maxTotalHtmlBrotliBytes}`,
+);
+if (!totalHtmlOk) {
+  failures.push(`Total HTML (br): ${totalHtmlBrotliBytes} > ${maxTotalHtmlBrotliBytes} bytes`);
+}
+
+const mainCssStats = matchedBudgetStats.get("Main CSS");
+const mainJsStats = matchedBudgetStats.get("Main JS");
+const indexPath = path.join(distDir, "index.html");
+const serifFontPath = path.join(assetDir, "fonts", "IBMPlexSerif-Regular.woff2");
+const sansFontPath = path.join(assetDir, "fonts", "IBMPlexSans-Regular.woff2");
+const maxEntryTransferBytes = 180_000;
+
+let entryTransferBytes = 0;
+if (!mainCssStats || !mainJsStats) {
+  failures.push("Entry transfer: main CSS/JS stats missing");
+} else {
+  await assertExists(indexPath, "Entry transfer: index.html missing");
+  await assertExists(serifFontPath, "Entry transfer: serif regular font missing");
+  await assertExists(sansFontPath, "Entry transfer: sans regular font missing");
+
+  const indexBrotliBytes = getBrotliSize(await fs.readFile(indexPath));
+  const serifFontBytes = (await fs.stat(serifFontPath)).size;
+  const sansFontBytes = (await fs.stat(sansFontPath)).size;
+  entryTransferBytes =
+    indexBrotliBytes +
+    mainCssStats.brotliBytes +
+    mainJsStats.brotliBytes +
+    serifFontBytes +
+    sansFontBytes;
+
+  const entryTransferOk = entryTransferBytes <= maxEntryTransferBytes;
+  lines.push(
+    `${(entryTransferOk ? "OK" : "FAIL").padEnd(4)} Entry transfer ${String(entryTransferBytes).padStart(7)} / ${maxEntryTransferBytes}`,
+  );
+  if (!entryTransferOk) {
+    failures.push(`Entry transfer: ${entryTransferBytes} > ${maxEntryTransferBytes} bytes`);
   }
 }
 
@@ -98,13 +210,32 @@ async function assertExists(targetPath, message) {
   }
 }
 
-async function sumFileSizes(filePaths) {
+async function sumRawFileSizes(filePaths) {
   let total = 0;
   for (const filePath of filePaths) {
     const { size } = await fs.stat(filePath);
     total += size;
   }
   return total;
+}
+
+async function sumFileSizesWithBrotli(filePaths) {
+  let rawBytes = 0;
+  let brotliBytes = 0;
+  for (const filePath of filePaths) {
+    const buffer = await fs.readFile(filePath);
+    rawBytes += buffer.length;
+    brotliBytes += getBrotliSize(buffer);
+  }
+  return { rawBytes, brotliBytes };
+}
+
+function getBrotliSize(buffer) {
+  return brotliCompressSync(buffer, {
+    params: {
+      [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
+    },
+  }).length;
 }
 
 async function collectHtmlFiles(dir) {

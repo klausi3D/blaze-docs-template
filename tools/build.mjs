@@ -279,6 +279,24 @@ function renderPageHtml({
   const serifFontHref = relativeHref(page.outputPath, "assets/fonts/IBMPlexSerif-Regular.woff2");
   const sansFontHref = relativeHref(page.outputPath, "assets/fonts/IBMPlexSans-Regular.woff2");
   const navPages = orderedPages.filter((item) => !item.navExclude);
+  const navPrefetchLinks = [];
+  const currentNavIndex = navPages.findIndex((item) => item.slug === page.slug);
+
+  if (currentNavIndex > 0) {
+    const previousHref = relativeHref(page.outputPath, navPages[currentNavIndex - 1].urlPath || "");
+    navPrefetchLinks.push(`<link rel="prev" href="${escapeAttribute(previousHref)}">`);
+    navPrefetchLinks.push(
+      `<link rel="prefetch" href="${escapeAttribute(previousHref)}" as="document">`,
+    );
+  }
+
+  if (currentNavIndex >= 0 && currentNavIndex < navPages.length - 1) {
+    const nextHref = relativeHref(page.outputPath, navPages[currentNavIndex + 1].urlPath || "");
+    navPrefetchLinks.push(`<link rel="next" href="${escapeAttribute(nextHref)}">`);
+    navPrefetchLinks.push(`<link rel="prefetch" href="${escapeAttribute(nextHref)}" as="document">`);
+  }
+
+  const navPrefetchMarkup = navPrefetchLinks.length > 0 ? `${navPrefetchLinks.join("\n  ")}\n  ` : "";
 
   const navLinks = navPages
     .map((item) => {
@@ -313,9 +331,8 @@ function renderPageHtml({
   <link rel="preload" href="${escapeAttribute(cssHref)}" as="style">
   <link rel="preload" href="${escapeAttribute(serifFontHref)}" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="${escapeAttribute(sansFontHref)}" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="${escapeAttribute(cssHref)}">
+  ${navPrefetchMarkup}<link rel="stylesheet" href="${escapeAttribute(cssHref)}">
   <link rel="icon" href="${escapeAttribute(relativeHref(page.outputPath, "assets/favicon.svg"))}" type="image/svg+xml">
-  <script type="speculationrules">{"prefetch":[{"source":"document","where":{"selector_matches":"a[data-prefetch]"},"eagerness":"moderate"}]}</script>
   <script type="module" src="${escapeAttribute(jsHref)}"></script>
 </head>
 <body>

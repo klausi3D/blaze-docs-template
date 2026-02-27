@@ -73,7 +73,8 @@ It builds `dist/` and deploys with GitHub Pages Actions (not Jekyll).
 - No frameworks.
 - No icon/font libraries.
 - Pre-rendered pages.
-- Lazy, worker-based search.
+- Lazy, worker-based search with debounced + cancelable query flow.
+- Selective document prefetch (previous/next page and link-intent prefetch).
 - Service worker stale-while-revalidate for static assets.
-- Budget checks on JS/CSS/search index size.
+- Budget checks on raw and Brotli-compressed transfer sizes.
 - Self-hosted IBM Plex fonts with `font-display: swap`.

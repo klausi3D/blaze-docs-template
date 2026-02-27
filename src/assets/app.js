@@ -4,6 +4,12 @@ const rootUrl = new URL(
 );
 
 const resolveFromRoot = (path) => new URL(path, rootUrl).href;
+const SEARCH_MIN_QUERY_LENGTH = 2;
+const SEARCH_DEBOUNCE_MS = 120;
+const LINK_PREFETCH_SUPPORTED = (() => {
+  const probe = document.createElement("link");
+  return Boolean(probe.relList?.supports && probe.relList.supports("prefetch"));
+})();
 
 const searchInput = document.querySelector("[data-search-input]");
 const searchResults = document.querySelector("[data-search-results]");
@@ -14,10 +20,14 @@ const gridStorageKey = "blaze-grid-debug";
 
 const state = {
   docs: null,
-  inflightId: 0,
+  requestSeq: 0,
+  activeRequestId: 0,
+  searchController: null,
+  searchDebounceTimer: null,
   searchInitPromise: null,
   worker: null,
   workerReady: false,
+  prefetchedDocuments: new Set(),
 };
 
 if (menuToggle && shell) {
@@ -27,13 +37,14 @@ if (menuToggle && shell) {
 }
 
 setupGridDebug();
+setupRoutePrefetch();
 
 if (searchInput && searchResults) {
   searchInput.addEventListener("focus", () => {
     void ensureSearch();
   });
 
-  searchInput.addEventListener("input", debounce(handleQuery, 80));
+  searchInput.addEventListener("input", scheduleSearchQuery);
 
   document.addEventListener("click", (event) => {
     const target = event.target;
@@ -48,6 +59,7 @@ if (searchInput && searchResults) {
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      cancelActiveSearch();
       closeResults();
     }
   });
@@ -101,17 +113,55 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
   });
 }
 
-async function handleQuery() {
+function scheduleSearchQuery() {
+  if (!searchInput) {
+    return;
+  }
+
   const query = searchInput.value.trim();
-  if (query.length < 2) {
+  if (state.searchDebounceTimer !== null) {
+    window.clearTimeout(state.searchDebounceTimer);
+    state.searchDebounceTimer = null;
+  }
+
+  if (query.length < SEARCH_MIN_QUERY_LENGTH) {
+    cancelActiveSearch();
     closeResults();
     return;
   }
 
+  state.searchDebounceTimer = window.setTimeout(() => {
+    state.searchDebounceTimer = null;
+    void runSearchQuery(query);
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+async function runSearchQuery(query) {
+  if (!searchInput || !searchResults) {
+    return;
+  }
+
+  const latestQuery = searchInput.value.trim();
+  if (query !== latestQuery || query.length < SEARCH_MIN_QUERY_LENGTH) {
+    return;
+  }
+
+  cancelActiveSearch();
+  const controller = new AbortController();
+  state.searchController = controller;
+  const requestId = ++state.requestSeq;
+  state.activeRequestId = requestId;
+
   try {
     await ensureSearch();
   } catch {
-    renderEmpty("Search is unavailable.");
+    if (!controller.signal.aborted) {
+      renderEmpty("Search is unavailable.");
+    }
+    return;
+  }
+
+  if (controller.signal.aborted || requestId !== state.activeRequestId) {
     return;
   }
 
@@ -120,12 +170,19 @@ async function handleQuery() {
     return;
   }
 
-  const requestId = ++state.inflightId;
   state.worker.postMessage({
     type: "query",
     id: requestId,
     query,
   });
+}
+
+function cancelActiveSearch() {
+  if (state.searchController) {
+    state.searchController.abort();
+    state.searchController = null;
+  }
+  state.activeRequestId = ++state.requestSeq;
 }
 
 async function ensureSearch() {
@@ -145,7 +202,7 @@ async function ensureSearch() {
     }
 
     if (!state.docs) {
-      const response = await fetch(resolveFromRoot(indexPath));
+      const response = await fetch(resolveFromRoot(indexPath), { cache: "force-cache" });
       if (!response.ok) {
         throw new Error(`Search index failed with ${response.status}`);
       }
@@ -191,9 +248,14 @@ function onWorkerMessage(event) {
     return;
   }
 
-  if (payload.id !== state.inflightId) {
+  if (payload.id !== state.activeRequestId) {
     return;
   }
+
+  if (state.searchController?.signal.aborted) {
+    return;
+  }
+  state.searchController = null;
 
   const results = Array.isArray(payload.results) ? payload.results : [];
   if (results.length === 0) {
@@ -235,17 +297,87 @@ function renderEmpty(message) {
 }
 
 function closeResults() {
+  if (!searchResults) {
+    return;
+  }
   searchResults.classList.remove("is-open");
 }
 
-function debounce(fn, waitMs) {
-  let timeoutId = null;
-  return (...args) => {
-    if (timeoutId !== null) {
-      window.clearTimeout(timeoutId);
+function setupRoutePrefetch() {
+  const links = Array.from(document.querySelectorAll("a[data-prefetch]"));
+  if (links.length === 0) {
+    return;
+  }
+
+  for (const link of links) {
+    if (!(link instanceof HTMLAnchorElement)) {
+      continue;
     }
-    timeoutId = window.setTimeout(() => fn(...args), waitMs);
-  };
+    const href = normalizePrefetchHref(link.href);
+    if (!href) {
+      continue;
+    }
+
+    const prefetchOnIntent = () => {
+      prefetchDocument(href);
+    };
+
+    link.addEventListener("mouseenter", prefetchOnIntent, { passive: true });
+    link.addEventListener("focus", prefetchOnIntent, { passive: true });
+    link.addEventListener(
+      "touchstart",
+      () => {
+        prefetchDocument(href);
+      },
+      { passive: true, once: true },
+    );
+  }
+}
+
+function normalizePrefetchHref(inputHref) {
+  if (!inputHref) {
+    return null;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(inputHref, window.location.href);
+  } catch {
+    return null;
+  }
+
+  if (parsed.origin !== window.location.origin) {
+    return null;
+  }
+
+  parsed.hash = "";
+  const current = new URL(window.location.href);
+  current.hash = "";
+  if (parsed.href === current.href) {
+    return null;
+  }
+
+  return parsed.href;
+}
+
+function prefetchDocument(href) {
+  if (!href || state.prefetchedDocuments.has(href)) {
+    return;
+  }
+  state.prefetchedDocuments.add(href);
+
+  if (LINK_PREFETCH_SUPPORTED) {
+    const prefetch = document.createElement("link");
+    prefetch.rel = "prefetch";
+    prefetch.as = "document";
+    prefetch.href = href;
+    document.head.append(prefetch);
+    return;
+  }
+
+  void fetch(href, { credentials: "same-origin" }).catch(() => {
+    // Ignore prefetch failures.
+  });
 }
 
 function setupGridDebug() {
