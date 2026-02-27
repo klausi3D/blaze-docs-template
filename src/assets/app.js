@@ -16,6 +16,11 @@ const searchResults = document.querySelector("[data-search-results]");
 const menuToggle = document.querySelector("[data-menu-toggle]");
 const gridToggle = document.querySelector("[data-grid-toggle]");
 const shell = document.querySelector("[data-site-shell]");
+const tocToggle = document.querySelector("[data-toc-toggle]");
+const tocDropdown = document.querySelector("[data-toc-dropdown]");
+const searchToggle = document.querySelector("[data-search-toggle]");
+const searchWrap = document.querySelector("[data-search-wrap]");
+const searchClose = document.querySelector("[data-search-close]");
 const gridStorageKey = "blaze-grid-debug";
 
 const state = {
@@ -34,17 +39,112 @@ if (menuToggle && shell) {
   menuToggle.addEventListener("click", () => {
     shell.classList.toggle("nav-open");
   });
+
+  // Close menu when clicking nav links
+  const navLinks = shell.querySelectorAll(".nav-link");
+  navLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      shell.classList.remove("nav-open");
+    });
+  });
+
+  // Close menu when clicking backdrop (outside sidebar)
+  document.addEventListener("click", (event) => {
+    if (!shell.classList.contains("nav-open")) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const isInsideSidebar = target.closest(".sidebar");
+    const isMenuToggle = target.closest("[data-menu-toggle]");
+    if (!isInsideSidebar && !isMenuToggle) {
+      shell.classList.remove("nav-open");
+    }
+  });
+
+  // Close menu on Escape key
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && shell.classList.contains("nav-open")) {
+      shell.classList.remove("nav-open");
+      menuToggle.focus();
+    }
+  });
+}
+
+// TOC dropdown toggle
+if (tocToggle && tocDropdown) {
+  tocToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isOpen = tocDropdown.classList.toggle("is-open");
+    tocToggle.setAttribute("aria-expanded", String(isOpen));
+  });
+
+  // Close on outside click
+  document.addEventListener("click", (event) => {
+    if (!tocDropdown.classList.contains("is-open")) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (!target.closest("[data-toc-toggle]") && !target.closest("[data-toc-dropdown]")) {
+      tocDropdown.classList.remove("is-open");
+      tocToggle.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  // Close on link click
+  tocDropdown.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      tocDropdown.classList.remove("is-open");
+      tocToggle.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  // Close on Escape
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && tocDropdown.classList.contains("is-open")) {
+      tocDropdown.classList.remove("is-open");
+      tocToggle.setAttribute("aria-expanded", "false");
+      tocToggle.focus();
+    }
+  });
+}
+
+// Mobile search toggle
+if (searchToggle && searchWrap && searchClose) {
+  searchToggle.addEventListener("click", () => {
+    searchWrap.classList.add("is-expanded");
+    searchInput?.focus();
+  });
+
+  searchClose.addEventListener("click", () => {
+    searchWrap.classList.remove("is-expanded");
+    if (searchInput) {
+      searchInput.value = "";
+    }
+    if (searchResults) {
+      searchResults.classList.remove("is-open");
+      searchResults.innerHTML = "";
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && searchWrap.classList.contains("is-expanded")) {
+      searchWrap.classList.remove("is-expanded");
+      searchToggle.focus();
+    }
+  });
 }
 
 setupGridDebug();
 setupRoutePrefetch();
 
 if (searchInput && searchResults) {
-  searchInput.addEventListener("focus", () => {
-    void ensureSearch();
-  });
-
-  searchInput.addEventListener("input", scheduleSearchQuery);
 
   document.addEventListener("click", (event) => {
     const target = event.target;

@@ -1298,10 +1298,20 @@ function renderPageHtml({
     <div class="topbar-inner">
       <button class="menu-toggle" data-menu-toggle type="button" aria-label="Toggle navigation">Menu</button>
       <a class="brand" href="${escapeAttribute(relativeHref(page.outputPath, ""))}">Blaze Docs</a>
+      <div class="toc-toggle-wrap">
+        <button class="toc-toggle" data-toc-toggle type="button" aria-label="Table of contents" aria-expanded="false">Contents</button>
+        <nav class="toc-dropdown" data-toc-dropdown aria-label="Table of contents">
+          <ul class="toc-list">${tocLinks}</ul>
+        </nav>
+      </div>
+      <button class="search-toggle" data-search-toggle type="button" aria-label="Open search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
       <button class="grid-toggle" data-grid-toggle type="button" aria-label="Toggle typography grid" aria-pressed="false">Grid</button>
-      <div class="search-wrap">
+      <div class="search-wrap" data-search-wrap>
         <label class="sr-only" for="site-search">Search documentation</label>
         <input class="search-input" id="site-search" data-search-input type="search" placeholder="Search docs" autocomplete="off" spellcheck="false">
+        <button class="search-close" data-search-close type="button" aria-label="Close search">&times;</button>
         <ul class="search-results" data-search-results aria-live="polite"></ul>
       </div>
     </div>
