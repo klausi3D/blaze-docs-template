@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
 
-  /* Neutral palette - no warm or cool tints */
+  /* Neutral palette */
   --bg: #f5f5f5;
   --surface: #fff;
   --surface-rail: #fafafa;
@@ -12,7 +12,7 @@
   --line: #ddd;
   --line-strong: #bbb;
 
-  /* Accent - deep blue, used sparingly for meaning */
+  /* Accent - deep blue, used sparingly */
   --accent: #1e4a6d;
   --accent-hover: #153a56;
   --accent-soft: #e8eef3;
@@ -24,22 +24,33 @@
   --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Spacing based on line-height */
-  --rhythm: 1.625rem;
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-  --space-8: 3rem;
+  /*
+   * BASELINE GRID SYSTEM
+   * Base unit: 0.5rem (8px)
+   * Body line-height: 1.5rem (24px) = 3 units
+   * All vertical spacing must be multiples of 0.5rem
+   */
+  --baseline: 1.5rem;
+  --unit: 0.5rem;
 
-  /* Type scale - minor third */
-  --step--1: 0.875rem;
-  --step-0: 1rem;
-  --step-1: 1.2rem;
-  --step-2: 1.44rem;
-  --step-3: 1.728rem;
+  /* Spacing scale - all multiples of 0.5rem */
+  --space-1: 0.5rem;   /* 8px  = 1 unit */
+  --space-2: 1rem;     /* 16px = 2 units */
+  --space-3: 1.5rem;   /* 24px = 3 units = 1 baseline */
+  --space-4: 2rem;     /* 32px = 4 units */
+  --space-5: 2.5rem;   /* 40px = 5 units */
+  --space-6: 3rem;     /* 48px = 6 units = 2 baselines */
+  --space-8: 4rem;     /* 64px = 8 units */
+
+  /*
+   * Type scale
+   * Each size paired with a line-height that fits the baseline grid
+   */
+  --step--1: 0.875rem;  /* 14px, line-height: 1.5rem (24px) */
+  --step-0: 1rem;       /* 16px, line-height: 1.5rem (24px) */
+  --step-1: 1.25rem;    /* 20px, line-height: 1.5rem (24px) */
+  --step-2: 1.5rem;     /* 24px, line-height: 2rem (32px) */
+  --step-3: 2rem;       /* 32px, line-height: 2.5rem (40px) */
 
   /* Layout */
   --measure: 65ch;
@@ -47,17 +58,18 @@
   --radius: 0;
   --radius-sm: 0;
   --radius-md: 0;
-  --shadow-soft: none;
 
   /* Grid debug */
-  --grid-columns: 12;
-  --grid-gutter: 1rem;
-  --grid-color-baseline: rgba(0, 0, 0, 0.08);
-  --grid-color-columns: rgba(0, 0, 0, 0.04);
+  --grid-color-baseline: rgba(0, 120, 200, 0.15);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 html,
@@ -66,16 +78,12 @@ body {
   min-height: 100%;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-serif);
   font-size: var(--step-0);
-  line-height: var(--rhythm);
+  line-height: var(--baseline);
   font-kerning: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -94,7 +102,7 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 1px solid var(--text-strong);
+  outline: 1px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -105,14 +113,14 @@ video {
 }
 
 .skip-link {
-  left: var(--space-4);
+  left: var(--space-2);
   position: absolute;
   top: -4rem;
   z-index: 50;
 }
 
 .skip-link:focus {
-  top: var(--space-4);
+  top: var(--space-2);
 }
 
 .sr-only {
@@ -126,38 +134,21 @@ video {
   width: 1px;
 }
 
+/*
+ * Grid debug overlay
+ * Shows baseline grid at 1.5rem (24px) intervals
+ */
 body.grid-debug::before {
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
-    transparent calc(var(--rhythm) - 1px),
-    var(--grid-color-baseline) calc(var(--rhythm) - 1px),
-    var(--grid-color-baseline) var(--rhythm)
+    transparent calc(var(--baseline) - 1px),
+    var(--grid-color-baseline) calc(var(--baseline) - 1px),
+    var(--grid-color-baseline) var(--baseline)
   );
   content: "";
   inset: 0;
   pointer-events: none;
   position: fixed;
   z-index: 9998;
-}
-
-body.grid-debug::after {
-  --grid-column: calc((100% - (var(--grid-columns) - 1) * var(--grid-gutter)) / var(--grid-columns));
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--grid-color-columns) 0,
-    var(--grid-color-columns) var(--grid-column),
-    transparent var(--grid-column),
-    transparent calc(var(--grid-column) + var(--grid-gutter))
-  );
-  content: "";
-  height: 100vh;
-  left: 50%;
-  max-width: calc(100vw - 2rem);
-  pointer-events: none;
-  position: fixed;
-  top: 0;
-  transform: translateX(-50%);
-  width: var(--shell-max);
-  z-index: 9997;
 }
