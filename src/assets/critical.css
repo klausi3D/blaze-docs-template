@@ -11,10 +11,13 @@
   --muted: #666;
   --line: #ddd;
   --line-strong: #bbb;
-  --accent: #333;
-  --accent-soft: #f0f0f0;
-  --link: #111;
-  --focus: #111;
+
+  /* Accent - deep blue, used sparingly for meaning */
+  --accent: #1e4a6d;
+  --accent-hover: #153a56;
+  --accent-soft: #e8eef3;
+  --link: #1e4a6d;
+  --focus: #1e4a6d;
 
   /* Typography */
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
@@ -86,6 +89,7 @@ a {
 }
 
 a:hover {
+  color: var(--accent-hover);
   text-decoration-thickness: 2px;
 }
 
