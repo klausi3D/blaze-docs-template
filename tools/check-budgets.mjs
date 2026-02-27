@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
 const assetDir = path.join(distDir, "assets");
+const mediaDir = path.join(assetDir, "media");
 
 const budgets = [
   {
@@ -116,6 +117,87 @@ lines.push(
 if (totalFontBytes > maxTotalFontBytes) {
   failures.push(`Total fonts: ${totalFontBytes} > ${maxTotalFontBytes} bytes`);
 }
+
+const mediaFiles = (await isDirectory(mediaDir)) ? await collectFilesRecursive(mediaDir) : [];
+const mediaPerFileMaxBytes = 1_200_000;
+const maxTotalMediaBytes = 8_000_000;
+const maxTotalMediaBrotliBytes = 1_500_000;
+const tinyGifFallbackMaxBytes = 64_000;
+const brotliSensibleMediaExtensions = new Set([".gif", ".svg"]);
+let largestMedia = { relPath: "n/a", rawBytes: 0 };
+let totalMediaBytes = 0;
+let totalMediaBrotliBytes = 0;
+let mediaBrotliFileCount = 0;
+let oversizedMediaCount = 0;
+let gifCount = 0;
+let animatedGifCount = 0;
+let oversizedGifCount = 0;
+
+for (const mediaPath of mediaFiles) {
+  const relPath = toPosixPath(path.relative(distDir, mediaPath));
+  const buffer = await fs.readFile(mediaPath);
+  const rawBytes = buffer.length;
+  const ext = path.extname(mediaPath).toLowerCase();
+
+  totalMediaBytes += rawBytes;
+
+  if (rawBytes > largestMedia.rawBytes) {
+    largestMedia = { relPath, rawBytes };
+  }
+
+  if (rawBytes > mediaPerFileMaxBytes) {
+    oversizedMediaCount += 1;
+    failures.push(`${relPath} (media raw): ${rawBytes} > ${mediaPerFileMaxBytes} bytes`);
+  }
+
+  if (brotliSensibleMediaExtensions.has(ext)) {
+    totalMediaBrotliBytes += getBrotliSize(buffer);
+    mediaBrotliFileCount += 1;
+  }
+
+  if (ext === ".gif") {
+    gifCount += 1;
+    const animated = isAnimatedGif(buffer);
+    if (animated) {
+      animatedGifCount += 1;
+    }
+    if (rawBytes > tinyGifFallbackMaxBytes) {
+      oversizedGifCount += 1;
+      if (animated) {
+        failures.push(
+          `${relPath} (animated GIF): ${rawBytes} > ${tinyGifFallbackMaxBytes} bytes; convert to MP4/WebM`,
+        );
+      } else {
+        failures.push(`${relPath} (GIF fallback): ${rawBytes} > ${tinyGifFallbackMaxBytes} bytes`);
+      }
+    }
+  }
+}
+
+const mediaPerFileOk = oversizedMediaCount === 0;
+lines.push(
+  `${(mediaPerFileOk ? "OK" : "FAIL").padEnd(4)} Media per-file raw ${String(largestMedia.rawBytes).padStart(7)} / ${mediaPerFileMaxBytes} (${largestMedia.relPath})`,
+);
+
+const totalMediaRawOk = totalMediaBytes <= maxTotalMediaBytes;
+const totalMediaBrotliOk = totalMediaBrotliBytes <= maxTotalMediaBrotliBytes;
+const totalMediaOk = totalMediaRawOk && totalMediaBrotliOk;
+lines.push(
+  `${(totalMediaOk ? "OK" : "FAIL").padEnd(4)} Total media    raw ${String(totalMediaBytes).padStart(7)} / ${maxTotalMediaBytes} br(gif/svg) ${String(totalMediaBrotliBytes).padStart(6)} / ${maxTotalMediaBrotliBytes} (${mediaBrotliFileCount} files)`,
+);
+if (!totalMediaRawOk) {
+  failures.push(`Total media (raw): ${totalMediaBytes} > ${maxTotalMediaBytes} bytes`);
+}
+if (!totalMediaBrotliOk) {
+  failures.push(
+    `Total media (br gif/svg): ${totalMediaBrotliBytes} > ${maxTotalMediaBrotliBytes} bytes`,
+  );
+}
+
+const gifPolicyOk = oversizedGifCount === 0;
+lines.push(
+  `${(gifPolicyOk ? "OK" : "FAIL").padEnd(4)} GIF fallback   ${String(oversizedGifCount).padStart(3)} oversized / ${String(gifCount).padStart(3)} total (animated ${animatedGifCount}, <= ${tinyGifFallbackMaxBytes} bytes)`,
+);
 
 const htmlFiles = await collectHtmlFiles(distDir);
 const maxHtmlBytes = 70_000;
@@ -266,4 +348,114 @@ async function collectFilesByExtensions(dir, extensions) {
     }
   }
   return results;
+}
+
+async function collectFilesRecursive(dir) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const results = [];
+  for (const entry of entries) {
+    const absPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...(await collectFilesRecursive(absPath)));
+      continue;
+    }
+    results.push(absPath);
+  }
+  return results;
+}
+
+async function isDirectory(targetPath) {
+  try {
+    const stats = await fs.stat(targetPath);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function toPosixPath(value) {
+  return value.split(path.sep).join("/");
+}
+
+function isAnimatedGif(buffer) {
+  const signature = buffer.toString("ascii", 0, 6);
+  if (signature !== "GIF87a" && signature !== "GIF89a") {
+    return false;
+  }
+
+  if (buffer.length < 13) {
+    return false;
+  }
+
+  let offset = 13;
+  const packedField = buffer[10];
+  if (packedField & 0x80) {
+    const gctSize = 3 * (2 ** ((packedField & 0x07) + 1));
+    offset += gctSize;
+  }
+
+  let frameCount = 0;
+  while (offset < buffer.length) {
+    const blockId = buffer[offset];
+    offset += 1;
+
+    if (blockId === 0x3b) {
+      break;
+    }
+
+    if (blockId === 0x2c) {
+      frameCount += 1;
+      if (frameCount > 1) {
+        return true;
+      }
+
+      if (offset + 9 > buffer.length) {
+        break;
+      }
+
+      const imagePacked = buffer[offset + 8];
+      offset += 9;
+
+      if (imagePacked & 0x80) {
+        const lctSize = 3 * (2 ** ((imagePacked & 0x07) + 1));
+        offset += lctSize;
+      }
+
+      if (offset >= buffer.length) {
+        break;
+      }
+
+      offset += 1;
+      while (offset < buffer.length) {
+        const subBlockSize = buffer[offset];
+        offset += 1;
+        if (subBlockSize === 0) {
+          break;
+        }
+        offset += subBlockSize;
+      }
+      continue;
+    }
+
+    if (blockId === 0x21) {
+      if (offset >= buffer.length) {
+        break;
+      }
+
+      offset += 1;
+      while (offset < buffer.length) {
+        const subBlockSize = buffer[offset];
+        offset += 1;
+        if (subBlockSize === 0) {
+          break;
+        }
+        offset += subBlockSize;
+      }
+      continue;
+    }
+
+    break;
+  }
+
+  return false;
 }

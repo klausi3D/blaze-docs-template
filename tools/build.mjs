@@ -1,7 +1,9 @@
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import matter from "gray-matter";
 import { marked } from "marked";
 
@@ -12,13 +14,18 @@ const contentDir = path.join(rootDir, "content");
 const assetSourceDir = path.join(rootDir, "src", "assets");
 const distDir = path.join(rootDir, "dist");
 const distAssetDir = path.join(distDir, "assets");
+const distMediaDir = path.join(distAssetDir, "media");
 const fontSourceDir = path.join(assetSourceDir, "fonts");
+
+const responsiveImageWidths = [480, 768, 1024, 1440];
+const optimizableRasterExtensions = new Set([".avif", ".gif", ".jpeg", ".jpg", ".png", ".webp"]);
 
 await build();
 
 async function build() {
   await fs.rm(distDir, { recursive: true, force: true });
   await fs.mkdir(distAssetDir, { recursive: true });
+  await fs.mkdir(distMediaDir, { recursive: true });
 
   const pages = await loadPages();
 
@@ -26,9 +33,11 @@ async function build() {
     throw new Error("No markdown files found in content/");
   }
 
+  const mediaPipeline = createMediaPipeline();
   const pagesBySource = new Map(pages.map((page) => [page.sourceRel, page]));
+
   for (const page of pages) {
-    const rendered = renderMarkdown(page.bodyMarkdown, page, pagesBySource);
+    const rendered = await renderMarkdown(page.bodyMarkdown, page, pagesBySource, mediaPipeline);
     page.bodyHtml = rendered.html;
     page.headings = rendered.headings;
   }
@@ -107,7 +116,8 @@ async function build() {
       description: "Page not found",
       outputPath: "404.html",
       urlPath: "404.html",
-      bodyHtml: "<h1>Page not found</h1><p>The page you requested does not exist.</p><p><a href=\"./\">Return to home</a></p>",
+      bodyHtml:
+        '<h1>Page not found</h1><p>The page you requested does not exist.</p><p><a href="./">Return to home</a></p>',
       headings: [],
       searchText: "",
       slug: "404",
@@ -131,6 +141,7 @@ async function build() {
   const summary = {
     pages: pages.length,
     assets: [appCssFile, appJsFile, searchWorkerFile, searchIndexFile, swFile],
+    mediaAssets: mediaPipeline.getGeneratedPaths().length,
   };
   console.log(JSON.stringify(summary, null, 2));
 }
@@ -179,13 +190,14 @@ async function loadPages() {
   return pages;
 }
 
-function renderMarkdown(markdown, page, pagesBySource) {
+async function renderMarkdown(markdown, page, pagesBySource, mediaPipeline) {
   const rawHtml = marked.parse(markdown);
   const html = typeof rawHtml === "string" ? rawHtml : String(rawHtml);
 
   const withRewrittenLinks = rewriteLinks(html, page, pagesBySource);
   const withHeadingAnchors = injectHeadingAnchors(withRewrittenLinks);
-  const optimized = optimizeImages(withHeadingAnchors.html);
+  const optimizedImages = await optimizeImages(withHeadingAnchors.html, page, mediaPipeline);
+  const optimized = await optimizeVideos(optimizedImages, page, mediaPipeline);
   const searchText = collapseWhitespace(stripTags(optimized));
 
   page.searchText = searchText;
@@ -248,17 +260,787 @@ function injectHeadingAnchors(html) {
   return { html: output, headings };
 }
 
-function optimizeImages(html) {
-  return html.replace(/<img\b([^>]*)>/g, (full, attrs) => {
-    let nextAttrs = attrs;
-    if (!/\sloading=/.test(nextAttrs)) {
-      nextAttrs += ' loading="lazy"';
+async function optimizeImages(html, page, mediaPipeline) {
+  const imageTagPattern = /<img\b([^>]*)>/gi;
+  let output = "";
+  let previousIndex = 0;
+  let match;
+
+  while ((match = imageTagPattern.exec(html)) !== null) {
+    output += html.slice(previousIndex, match.index);
+    const attrs = parseHtmlAttributes(match[1] || "");
+    output += await rewriteImageTag(attrs, page, mediaPipeline);
+    previousIndex = imageTagPattern.lastIndex;
+  }
+
+  output += html.slice(previousIndex);
+  return output;
+}
+
+async function optimizeVideos(html, page, mediaPipeline) {
+  const videoTagPattern = /<video\b([^>]*)>([\s\S]*?)<\/video>/gi;
+  let output = "";
+  let previousIndex = 0;
+  let match;
+
+  while ((match = videoTagPattern.exec(html)) !== null) {
+    output += html.slice(previousIndex, match.index);
+    const attrs = parseHtmlAttributes(match[1] || "");
+    const innerHtml = match[2] || "";
+    output += await rewriteVideoTag(attrs, innerHtml, page, mediaPipeline);
+    previousIndex = videoTagPattern.lastIndex;
+  }
+
+  output += html.slice(previousIndex);
+  return output;
+}
+
+async function rewriteImageTag(attrs, page, mediaPipeline) {
+  const imageAttrs = cloneAttributeMap(attrs);
+  ensureImagePerformanceAttrs(imageAttrs);
+
+  const srcValue = getAttribute(imageAttrs, "src");
+  if (!srcValue) {
+    return `<img${serializeHtmlAttributes(imageAttrs)}>`;
+  }
+
+  const localSource = resolveLocalMediaSource(srcValue, page);
+  if (!localSource || !isOptimizableRasterExtension(localSource.extension)) {
+    return `<img${serializeHtmlAttributes(imageAttrs)}>`;
+  }
+
+  try {
+    const processed =
+      localSource.extension === ".gif"
+        ? await mediaPipeline.processGif(localSource.absolutePath, localSource.sourceRelFromRoot)
+        : await mediaPipeline.processImage(localSource.absolutePath, localSource.sourceRelFromRoot);
+
+    if (processed.kind === "video") {
+      return buildVideoMarkup(imageAttrs, processed, page.outputPath);
     }
-    if (!/\sdecoding=/.test(nextAttrs)) {
-      nextAttrs += ' decoding="async"';
+
+    return buildPictureMarkup(imageAttrs, processed, page.outputPath);
+  } catch (error) {
+    console.warn(
+      `[build] Unable to optimize image "${srcValue}" in "${page.sourceRel}": ${error.message}`,
+    );
+    return `<img${serializeHtmlAttributes(imageAttrs)}>`;
+  }
+}
+
+function buildPictureMarkup(originalImageAttrs, processedImage, outputPath) {
+  const imgAttrs = cloneAttributeMap(originalImageAttrs);
+  const sizes = getAttribute(imgAttrs, "sizes") || "100vw";
+  const fallbackVariants = processedImage.fallback.variants;
+  const fallbackLargest = fallbackVariants[fallbackVariants.length - 1];
+
+  removeAttributes(imgAttrs, ["src", "srcset", "sizes", "width", "height"]);
+  setAttribute(imgAttrs, "src", mediaHref(outputPath, fallbackLargest.fileName));
+  setAttribute(imgAttrs, "srcset", buildSrcSet(fallbackVariants, outputPath));
+  setAttribute(imgAttrs, "sizes", sizes);
+  setAttribute(imgAttrs, "width", processedImage.width);
+  setAttribute(imgAttrs, "height", processedImage.height);
+  ensureImagePerformanceAttrs(imgAttrs);
+
+  const avifSrcSet = buildSrcSet(processedImage.avif, outputPath);
+  const webpSrcSet = buildSrcSet(processedImage.webp, outputPath);
+  const fallbackSrcSet = buildSrcSet(fallbackVariants, outputPath);
+
+  const sourceMarkup = [
+    `<source type="image/avif" srcset="${escapeAttribute(avifSrcSet)}" sizes="${escapeAttribute(sizes)}">`,
+    `<source type="image/webp" srcset="${escapeAttribute(webpSrcSet)}" sizes="${escapeAttribute(sizes)}">`,
+    `<source type="${escapeAttribute(processedImage.fallback.mimeType)}" srcset="${escapeAttribute(fallbackSrcSet)}" sizes="${escapeAttribute(sizes)}">`,
+  ].join("");
+
+  return `<picture>${sourceMarkup}<img${serializeHtmlAttributes(imgAttrs)}></picture>`;
+}
+
+function buildVideoMarkup(originalImageAttrs, processedVideo, outputPath) {
+  const videoAttrs = cloneAttributeMap(originalImageAttrs);
+  const fallbackImgAttrs = cloneAttributeMap(originalImageAttrs);
+  const posterHref = mediaHref(outputPath, processedVideo.posterFileName);
+
+  removeAttributes(videoAttrs, [
+    "src",
+    "srcset",
+    "sizes",
+    "width",
+    "height",
+    "loading",
+    "decoding",
+    "alt",
+  ]);
+
+  setAttribute(videoAttrs, "autoplay", null);
+  setAttribute(videoAttrs, "muted", null);
+  setAttribute(videoAttrs, "loop", null);
+  setAttribute(videoAttrs, "playsinline", null);
+  setAttribute(videoAttrs, "preload", "none");
+  setAttribute(videoAttrs, "poster", posterHref);
+  setAttribute(videoAttrs, "width", processedVideo.width);
+  setAttribute(videoAttrs, "height", processedVideo.height);
+
+  const fallbackAlt = getAttribute(originalImageAttrs, "alt") || "";
+  removeAttributes(fallbackImgAttrs, ["src", "srcset", "sizes", "width", "height"]);
+  setAttribute(fallbackImgAttrs, "src", posterHref);
+  setAttribute(fallbackImgAttrs, "alt", fallbackAlt);
+  setAttribute(fallbackImgAttrs, "width", processedVideo.width);
+  setAttribute(fallbackImgAttrs, "height", processedVideo.height);
+  ensureImagePerformanceAttrs(fallbackImgAttrs);
+
+  const webmHref = mediaHref(outputPath, processedVideo.webmFileName);
+  const mp4Href = mediaHref(outputPath, processedVideo.mp4FileName);
+
+  return `<video${serializeHtmlAttributes(videoAttrs)}><source src="${escapeAttribute(webmHref)}" type="video/webm"><source src="${escapeAttribute(mp4Href)}" type="video/mp4"><img${serializeHtmlAttributes(fallbackImgAttrs)}></video>`;
+}
+
+async function rewriteVideoTag(videoAttrs, innerHtml, page, mediaPipeline) {
+  const nextVideoAttrs = cloneAttributeMap(videoAttrs);
+  const originalPoster = getAttribute(nextVideoAttrs, "poster");
+  const originalSrc = getAttribute(nextVideoAttrs, "src");
+  const sourceTagPattern = /<source\b([^>]*)>/gi;
+  const sourceMatches = [];
+  let sourceMatch;
+
+  while ((sourceMatch = sourceTagPattern.exec(innerHtml)) !== null) {
+    sourceMatches.push({
+      fullMatch: sourceMatch[0],
+      attrs: parseHtmlAttributes(sourceMatch[1] || ""),
+    });
+  }
+
+  let localSource = null;
+  if (originalSrc) {
+    localSource = resolveLocalMediaSource(originalSrc, page, { allowedExtensions: new Set([".mp4", ".webm"]) });
+  }
+
+  if (!localSource) {
+    for (const source of sourceMatches) {
+      const srcValue = getAttribute(source.attrs, "src");
+      localSource = resolveLocalMediaSource(srcValue || "", page, {
+        allowedExtensions: new Set([".mp4", ".webm"]),
+      });
+      if (localSource) {
+        break;
+      }
     }
-    return `<img${nextAttrs}>`;
+  }
+
+  if (!localSource) {
+    return `<video${serializeHtmlAttributes(nextVideoAttrs)}>${innerHtml}</video>`;
+  }
+
+  try {
+    const processed = await mediaPipeline.processVideo(localSource.absolutePath, localSource.sourceRelFromRoot);
+    removeAttributes(nextVideoAttrs, ["src"]);
+    if (!nextVideoAttrs.has("preload")) {
+      setAttribute(nextVideoAttrs, "preload", "none");
+    }
+    if (!nextVideoAttrs.has("playsinline")) {
+      setAttribute(nextVideoAttrs, "playsinline", null);
+    }
+    if (!originalPoster && processed.posterFileName) {
+      setAttribute(nextVideoAttrs, "poster", mediaHref(page.outputPath, processed.posterFileName));
+    }
+
+    const normalizedSources = [];
+    if (processed.webmFileName) {
+      normalizedSources.push(
+        `<source src="${escapeAttribute(mediaHref(page.outputPath, processed.webmFileName))}" type="video/webm">`,
+      );
+    }
+    if (processed.mp4FileName) {
+      normalizedSources.push(
+        `<source src="${escapeAttribute(mediaHref(page.outputPath, processed.mp4FileName))}" type="video/mp4">`,
+      );
+    }
+
+    const innerWithoutSources = innerHtml.replace(sourceTagPattern, "");
+    return `<video${serializeHtmlAttributes(nextVideoAttrs)}>${normalizedSources.join("")}${innerWithoutSources}</video>`;
+  } catch (error) {
+    console.warn(
+      `[build] Unable to optimize video "${localSource.sourceRelFromRoot}" in "${page.sourceRel}": ${error.message}`,
+    );
+    return `<video${serializeHtmlAttributes(nextVideoAttrs)}>${innerHtml}</video>`;
+  }
+}
+
+function parseHtmlAttributes(rawAttributes) {
+  const attributes = new Map();
+  const attributePattern = /([^\s=\/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let match;
+
+  while ((match = attributePattern.exec(rawAttributes)) !== null) {
+    const name = match[1];
+    const key = name.toLowerCase();
+    const value = match[2] ?? match[3] ?? match[4] ?? null;
+    attributes.set(key, { name, value });
+  }
+
+  return attributes;
+}
+
+function serializeHtmlAttributes(attributes) {
+  if (attributes.size === 0) {
+    return "";
+  }
+
+  const output = [];
+  for (const attribute of attributes.values()) {
+    if (attribute.value === null) {
+      output.push(attribute.name);
+    } else {
+      output.push(`${attribute.name}="${escapeAttribute(attribute.value)}"`);
+    }
+  }
+
+  return ` ${output.join(" ")}`;
+}
+
+function cloneAttributeMap(attributes) {
+  const clone = new Map();
+  for (const [key, attribute] of attributes.entries()) {
+    clone.set(key, { ...attribute });
+  }
+  return clone;
+}
+
+function getAttribute(attributes, name) {
+  const attribute = attributes.get(name.toLowerCase());
+  return attribute ? attribute.value : null;
+}
+
+function setAttribute(attributes, name, value) {
+  const key = name.toLowerCase();
+  const current = attributes.get(key);
+  attributes.set(key, {
+    name: current?.name || name,
+    value: value === null ? null : String(value),
   });
+}
+
+function removeAttributes(attributes, names) {
+  for (const name of names) {
+    attributes.delete(name.toLowerCase());
+  }
+}
+
+function ensureImagePerformanceAttrs(attributes) {
+  if (!attributes.has("loading")) {
+    setAttribute(attributes, "loading", "lazy");
+  }
+  if (!attributes.has("decoding")) {
+    setAttribute(attributes, "decoding", "async");
+  }
+}
+
+function resolveLocalMediaSource(src, page, options = {}) {
+  const allowedExtensions = options.allowedExtensions || null;
+  const [withoutHash] = src.split("#", 1);
+  const [pathPart] = withoutHash.split("?", 1);
+
+  if (!pathPart || isNonLocalSource(pathPart)) {
+    return null;
+  }
+
+  const decodedPath = decodePathSafe(pathPart);
+  const sourceDir = path.posix.dirname(page.sourceRel);
+  const normalizedRelativePath = path.posix.normalize(path.posix.join(sourceDir, toPosix(decodedPath)));
+  const absolutePath = path.resolve(contentDir, normalizedRelativePath);
+
+  if (!isPathInsideRoot(absolutePath, contentDir)) {
+    return null;
+  }
+
+  const extension = path.extname(pathPart).toLowerCase();
+  if (allowedExtensions && !allowedExtensions.has(extension)) {
+    return null;
+  }
+
+  return {
+    absolutePath,
+    sourceRelFromRoot: toPosix(path.relative(rootDir, absolutePath)),
+    extension,
+  };
+}
+
+function decodePathSafe(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function isNonLocalSource(value) {
+  return value.startsWith("/") || value.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(value);
+}
+
+function isPathInsideRoot(candidatePath, basePath) {
+  const resolvedCandidate = path.resolve(candidatePath);
+  const resolvedBase = path.resolve(basePath);
+  const relative = path.relative(resolvedBase, resolvedCandidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function isOptimizableRasterExtension(extension) {
+  return optimizableRasterExtensions.has(extension);
+}
+
+function buildResponsiveWidths(intrinsicWidth) {
+  const widths = responsiveImageWidths.filter((width) => width < intrinsicWidth);
+  widths.push(intrinsicWidth);
+  return [...new Set(widths)].sort((a, b) => a - b);
+}
+
+function buildSrcSet(variants, outputPath) {
+  return variants
+    .map((variant) => `${mediaHref(outputPath, variant.fileName)} ${variant.width}w`)
+    .join(", ");
+}
+
+function mediaHref(outputPath, mediaFileName) {
+  return relativeHref(outputPath, `assets/media/${mediaFileName}`);
+}
+
+function pickGifVideoWidth(intrinsicWidth) {
+  const maxWidth = responsiveImageWidths[responsiveImageWidths.length - 1];
+  const clamped = Math.min(intrinsicWidth, maxWidth);
+  const even = clamped % 2 === 0 ? clamped : clamped - 1;
+  return Math.max(2, even);
+}
+
+function pickPosterVariant(variants, preferredMaxWidth) {
+  const candidate = [...variants].reverse().find((variant) => variant.width <= preferredMaxWidth);
+  return candidate || variants[variants.length - 1];
+}
+
+function createMediaPipeline() {
+  const imageCache = new Map();
+  const gifCache = new Map();
+  const videoCache = new Map();
+  const generatedMediaPaths = new Set();
+  let ffmpegAvailablePromise;
+  let ffmpegUnavailableLogged = false;
+
+  return {
+    processImage,
+    processGif,
+    processVideo,
+    getGeneratedPaths() {
+      return [...generatedMediaPaths].sort();
+    },
+  };
+
+  async function processImage(absolutePath, sourceRelFromRoot) {
+    const key = `${absolutePath}:image`;
+    if (!imageCache.has(key)) {
+      imageCache.set(key, processImageInternal(absolutePath, sourceRelFromRoot));
+    }
+    return imageCache.get(key);
+  }
+
+  async function processGif(absolutePath, sourceRelFromRoot) {
+    const key = `${absolutePath}:gif`;
+    if (!gifCache.has(key)) {
+      gifCache.set(key, processGifInternal(absolutePath, sourceRelFromRoot));
+    }
+    return gifCache.get(key);
+  }
+
+  async function processVideo(absolutePath, sourceRelFromRoot) {
+    const key = `${absolutePath}:video`;
+    if (!videoCache.has(key)) {
+      videoCache.set(key, processVideoInternal(absolutePath, sourceRelFromRoot));
+    }
+    return videoCache.get(key);
+  }
+
+  async function processImageInternal(absolutePath, sourceRelFromRoot) {
+    await fs.access(absolutePath);
+    const metadata = await sharp(absolutePath, { animated: false }).metadata();
+
+    if (!metadata.width || !metadata.height) {
+      throw new Error(`Missing image dimensions for ${sourceRelFromRoot}`);
+    }
+
+    const normalized = await sharp(absolutePath, { animated: false })
+      .rotate()
+      .toBuffer({ resolveWithObject: true });
+
+    const width = normalized.info.width || metadata.width;
+    const height = normalized.info.height || metadata.height;
+    const hasAlpha = Boolean(metadata.hasAlpha);
+    const fallbackFormat = hasAlpha ? "png" : "jpg";
+    const fallbackMimeType = hasAlpha ? "image/png" : "image/jpeg";
+    const widths = buildResponsiveWidths(width);
+    const avif = [];
+    const webp = [];
+    const fallback = [];
+
+    for (const variantWidth of widths) {
+      const avifBuffer = await sharp(normalized.data)
+        .resize({ width: variantWidth, withoutEnlargement: true })
+        .avif({ quality: 50, effort: 4 })
+        .toBuffer();
+      const webpBuffer = await sharp(normalized.data)
+        .resize({ width: variantWidth, withoutEnlargement: true })
+        .webp({ quality: 72, effort: 4 })
+        .toBuffer();
+
+      avif.push({
+        width: variantWidth,
+        fileName: await writeMediaBinaryAsset(sourceRelFromRoot, `w${variantWidth}`, "avif", avifBuffer),
+      });
+
+      webp.push({
+        width: variantWidth,
+        fileName: await writeMediaBinaryAsset(sourceRelFromRoot, `w${variantWidth}`, "webp", webpBuffer),
+      });
+
+      if (fallbackFormat === "png") {
+        const pngBuffer = await sharp(normalized.data)
+          .resize({ width: variantWidth, withoutEnlargement: true })
+          .png({ compressionLevel: 9, adaptiveFiltering: true })
+          .toBuffer();
+
+        fallback.push({
+          width: variantWidth,
+          fileName: await writeMediaBinaryAsset(sourceRelFromRoot, `w${variantWidth}`, "png", pngBuffer),
+        });
+      } else {
+        const jpegBuffer = await sharp(normalized.data)
+          .resize({ width: variantWidth, withoutEnlargement: true })
+          .jpeg({ quality: 82, mozjpeg: true })
+          .toBuffer();
+
+        fallback.push({
+          width: variantWidth,
+          fileName: await writeMediaBinaryAsset(sourceRelFromRoot, `w${variantWidth}`, "jpg", jpegBuffer),
+        });
+      }
+    }
+
+    return {
+      kind: "image",
+      width,
+      height,
+      avif,
+      webp,
+      fallback: {
+        format: fallbackFormat,
+        mimeType: fallbackMimeType,
+        variants: fallback,
+      },
+    };
+  }
+
+  async function processGifInternal(absolutePath, sourceRelFromRoot) {
+    const fallbackImage = await processImage(absolutePath, sourceRelFromRoot);
+    const ffmpegAvailable = await isFfmpegAvailable();
+
+    if (!ffmpegAvailable) {
+      if (!ffmpegUnavailableLogged) {
+        console.warn(
+          "[build] ffmpeg not found on PATH; keeping GIF sources as optimized image fallbacks.",
+        );
+        ffmpegUnavailableLogged = true;
+      }
+      return fallbackImage;
+    }
+
+    const videoWidth = pickGifVideoWidth(fallbackImage.width);
+    const safeBase = sanitizeMediaBaseName(sourceRelFromRoot);
+    const tempToken = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const tempWebm = path.join(distMediaDir, `${safeBase}.${tempToken}.webm.tmp`);
+    const tempMp4 = path.join(distMediaDir, `${safeBase}.${tempToken}.mp4.tmp`);
+
+    try {
+      // Keep video transforms deterministic so output hashes remain stable for caching.
+      await runFfmpeg([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        absolutePath,
+        "-an",
+        "-vf",
+        `fps=20,scale=${videoWidth}:-2:flags=lanczos`,
+        "-c:v",
+        "libvpx-vp9",
+        "-b:v",
+        "0",
+        "-crf",
+        "35",
+        "-pix_fmt",
+        "yuv420p",
+        tempWebm,
+      ]);
+
+      await runFfmpeg([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        absolutePath,
+        "-an",
+        "-vf",
+        `fps=20,scale=${videoWidth}:-2:flags=lanczos`,
+        "-movflags",
+        "+faststart",
+        "-c:v",
+        "libx264",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        tempMp4,
+      ]);
+
+      const [webmBuffer, mp4Buffer] = await Promise.all([
+        fs.readFile(tempWebm),
+        fs.readFile(tempMp4),
+      ]);
+
+      const webmFileName = await writeMediaBinaryAsset(
+        sourceRelFromRoot,
+        `anim-w${videoWidth}`,
+        "webm",
+        webmBuffer,
+      );
+      const mp4FileName = await writeMediaBinaryAsset(
+        sourceRelFromRoot,
+        `anim-w${videoWidth}`,
+        "mp4",
+        mp4Buffer,
+      );
+      const posterVariant = pickPosterVariant(fallbackImage.fallback.variants, 1024);
+
+      return {
+        kind: "video",
+        width: fallbackImage.width,
+        height: fallbackImage.height,
+        webmFileName,
+        mp4FileName,
+        posterFileName: posterVariant.fileName,
+      };
+    } catch (error) {
+      console.warn(
+        `[build] GIF transcode failed for "${sourceRelFromRoot}"; using optimized image fallback instead (${error.message}).`,
+      );
+      return fallbackImage;
+    } finally {
+      await Promise.allSettled([
+        fs.rm(tempWebm, { force: true }),
+        fs.rm(tempMp4, { force: true }),
+      ]);
+    }
+  }
+
+  async function processVideoInternal(absolutePath, sourceRelFromRoot) {
+    await fs.access(absolutePath);
+    const extension = path.extname(absolutePath).toLowerCase();
+    const ffmpegAvailable = await isFfmpegAvailable();
+
+    if (!ffmpegAvailable) {
+      if (!ffmpegUnavailableLogged) {
+        console.warn(
+          "[build] ffmpeg not found on PATH; keeping source video formats without transcode.",
+        );
+        ffmpegUnavailableLogged = true;
+      }
+      const originalBuffer = await fs.readFile(absolutePath);
+      const originalFileName = await writeMediaBinaryAsset(
+        sourceRelFromRoot,
+        "orig",
+        extension.slice(1),
+        originalBuffer,
+      );
+      return {
+        kind: "video-source-set",
+        webmFileName: extension === ".webm" ? originalFileName : null,
+        mp4FileName: extension === ".mp4" ? originalFileName : null,
+        posterFileName: null,
+      };
+    }
+
+    const safeBase = sanitizeMediaBaseName(sourceRelFromRoot);
+    const tempToken = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const tempWebm = path.join(distMediaDir, `${safeBase}.${tempToken}.webm.tmp`);
+    const tempMp4 = path.join(distMediaDir, `${safeBase}.${tempToken}.mp4.tmp`);
+    const tempPoster = path.join(distMediaDir, `${safeBase}.${tempToken}.poster.jpg.tmp`);
+
+    try {
+      await runFfmpeg([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        absolutePath,
+        "-an",
+        "-c:v",
+        "libvpx-vp9",
+        "-b:v",
+        "0",
+        "-crf",
+        "33",
+        "-pix_fmt",
+        "yuv420p",
+        tempWebm,
+      ]);
+
+      await runFfmpeg([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        absolutePath,
+        "-an",
+        "-movflags",
+        "+faststart",
+        "-c:v",
+        "libx264",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        tempMp4,
+      ]);
+
+      await runFfmpeg([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        absolutePath,
+        "-frames:v",
+        "1",
+        "-q:v",
+        "3",
+        tempPoster,
+      ]);
+
+      const [webmBuffer, mp4Buffer, posterBuffer] = await Promise.all([
+        fs.readFile(tempWebm),
+        fs.readFile(tempMp4),
+        fs.readFile(tempPoster),
+      ]);
+
+      const webmFileName = await writeMediaBinaryAsset(
+        sourceRelFromRoot,
+        "video",
+        "webm",
+        webmBuffer,
+      );
+      const mp4FileName = await writeMediaBinaryAsset(
+        sourceRelFromRoot,
+        "video",
+        "mp4",
+        mp4Buffer,
+      );
+      const posterFileName = await writeMediaBinaryAsset(
+        sourceRelFromRoot,
+        "poster",
+        "jpg",
+        posterBuffer,
+      );
+
+      return {
+        kind: "video-source-set",
+        webmFileName,
+        mp4FileName,
+        posterFileName,
+      };
+    } catch (error) {
+      const originalBuffer = await fs.readFile(absolutePath);
+      const originalFileName = await writeMediaBinaryAsset(
+        sourceRelFromRoot,
+        "orig",
+        extension.slice(1),
+        originalBuffer,
+      );
+      console.warn(
+        `[build] Video transcode failed for "${sourceRelFromRoot}"; using source format only (${error.message}).`,
+      );
+      return {
+        kind: "video-source-set",
+        webmFileName: extension === ".webm" ? originalFileName : null,
+        mp4FileName: extension === ".mp4" ? originalFileName : null,
+        posterFileName: null,
+      };
+    } finally {
+      await Promise.allSettled([
+        fs.rm(tempWebm, { force: true }),
+        fs.rm(tempMp4, { force: true }),
+        fs.rm(tempPoster, { force: true }),
+      ]);
+    }
+  }
+
+  async function isFfmpegAvailable() {
+    if (!ffmpegAvailablePromise) {
+      ffmpegAvailablePromise = new Promise((resolve) => {
+        const child = spawn("ffmpeg", ["-version"], { stdio: "ignore" });
+        child.on("error", () => resolve(false));
+        child.on("close", (code) => resolve(code === 0));
+      });
+    }
+
+    return ffmpegAvailablePromise;
+  }
+
+  async function runFfmpeg(args) {
+    await new Promise((resolve, reject) => {
+      const child = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
+      let stderr = "";
+
+      child.stderr.on("data", (chunk) => {
+        stderr += chunk.toString();
+        if (stderr.length > 4000) {
+          stderr = stderr.slice(-4000);
+        }
+      });
+
+      child.on("error", reject);
+      child.on("close", (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`ffmpeg exited with code ${code}: ${collapseWhitespace(stderr)}`));
+        }
+      });
+    });
+  }
+
+  async function writeMediaBinaryAsset(sourceRelFromRoot, variantLabel, extension, buffer) {
+    const safeBase = sanitizeMediaBaseName(sourceRelFromRoot);
+    const hash = hashOf(buffer).slice(0, 10);
+    const safeVariant = variantLabel.replace(/[^a-z0-9-]/gi, "").toLowerCase();
+    const fileName = `${safeBase}.${safeVariant}.${hash}.${extension}`;
+    const outputPath = path.join(distMediaDir, fileName);
+
+    await fs.writeFile(outputPath, buffer);
+    generatedMediaPaths.add(`assets/media/${fileName}`);
+
+    return fileName;
+  }
+}
+
+function sanitizeMediaBaseName(sourceRelFromRoot) {
+  const withoutExtension = toPosix(sourceRelFromRoot).replace(/\.[a-z0-9]+$/i, "");
+  const collapsed = withoutExtension
+    .replace(/[^a-z0-9/_-]/gi, "-")
+    .replace(/\/+/g, "/")
+    .replace(/^\/+|\/+$/g, "")
+    .replace(/\//g, "-")
+    .replace(/-+/g, "-");
+
+  return collapsed || "media";
 }
 
 function renderPageHtml({
@@ -510,7 +1292,13 @@ function escapeAttribute(value) {
 }
 
 function hashOf(content) {
-  return createHash("sha256").update(String(content)).digest("hex");
+  const hash = createHash("sha256");
+  if (Buffer.isBuffer(content)) {
+    hash.update(content);
+  } else {
+    hash.update(String(content));
+  }
+  return hash.digest("hex");
 }
 
 function toPosix(value) {

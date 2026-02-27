@@ -63,6 +63,19 @@ Front matter fields:
 `index.md` maps to `/`.
 Every other page maps to `/your-slug/`.
 
+## Media Pipeline
+
+- Supported source formats: `.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`, `.gif`, `.mp4`, `.webm`.
+- Generated output path: optimized, hashed files are emitted under `dist/assets/media/`.
+- Caching model: media is intentionally not install-time precached by the service worker to avoid first-load cache bloat; hashed filenames still make browser/CDN caching effective.
+- GIF to video behavior: if `ffmpeg` is available on `PATH`, local GIFs are transcoded to looping `.webm` + `.mp4` with a poster frame; otherwise GIFs fall back to optimized still-image markup.
+- Video tag behavior: local `<video src>` / `<video><source ...></video>` sources (`.mp4`/`.webm`) are rewritten to hashed media assets and normalized to include `preload="none"` and `playsinline`.
+- Budget defaults for docs sites: max 1.2 MB per media file and max 8 MB total media payload (`check:budgets` also reports Brotli totals for GIF/SVG where compression is meaningful).
+- Recommended markdown usage:
+  - Use normal image syntax for still media, for example `![Architecture diagram](./media/architecture.png)`.
+  - Use HTML `<video>` for motion content and provide a poster image when possible.
+  - Keep alt text descriptive and specific (diagram purpose, not file name).
+
 ## Deployment
 
 GitHub Actions workflow is in `.github/workflows/deploy.yml`.
