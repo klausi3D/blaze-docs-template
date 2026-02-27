@@ -20,7 +20,14 @@
   --space-10: calc(var(--baseline) * 10);
   --space-12: calc(var(--baseline) * 12);
 
-  --measure: 74ch;
+  --leading-copy: calc(var(--baseline) * 5);
+  --leading-ui: calc(var(--baseline) * 6);
+  --leading-tight: calc(var(--baseline) * 4);
+  --leading-h1: calc(var(--baseline) * 8);
+  --leading-h2: calc(var(--baseline) * 7);
+  --leading-h3: calc(var(--baseline) * 6);
+
+  --measure: 62ch;
   --grid-max-width: 82rem;
   --grid-columns: 12;
   --grid-gutter: 1rem;
@@ -47,7 +54,7 @@ body {
   color: var(--text);
   font-family: var(--font-serif);
   font-size: 1rem;
-  line-height: 1.5rem;
+  line-height: var(--leading-copy);
   position: relative;
   text-rendering: optimizeLegibility;
 }

@@ -83,7 +83,7 @@
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 600;
-  line-height: 1.5rem;
+  line-height: var(--leading-ui);
   margin-left: var(--space-2);
   padding: 0 var(--space-3);
 }
@@ -103,7 +103,7 @@
   font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
-  line-height: 1.5rem;
+  line-height: var(--leading-ui);
   padding: var(--space-1) var(--space-3);
 }
 
@@ -121,7 +121,7 @@
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 0.9375rem;
-  line-height: 1.5rem;
+  line-height: var(--leading-ui);
   padding: var(--space-2) var(--space-3);
   width: 100%;
 }
@@ -174,7 +174,7 @@
   font-family: var(--font-sans);
   font-size: 0.9rem;
   font-weight: 600;
-  line-height: 1.5rem;
+  line-height: var(--leading-copy);
   margin-bottom: var(--space-1);
 }
 
@@ -182,7 +182,7 @@
   color: var(--muted);
   display: block;
   font-size: 0.875rem;
-  line-height: 1.5rem;
+  line-height: var(--leading-copy);
 }
 
 .site-shell {
@@ -211,7 +211,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  line-height: 1rem;
+  line-height: var(--leading-tight);
   margin: 0 0 var(--space-3);
   text-transform: uppercase;
 }
@@ -232,7 +232,7 @@
   display: block;
   font-family: var(--font-sans);
   font-size: 0.9rem;
-  line-height: 1.5rem;
+  line-height: var(--leading-copy);
   padding: var(--space-1) var(--space-2);
   text-decoration: none;
 }
@@ -310,7 +310,7 @@
 }
 
 .prose > * + * {
-  margin-top: var(--space-6);
+  margin-top: var(--space-5);
 }
 
 .prose > h1,
@@ -324,20 +324,20 @@
 
 .prose > h1 {
   font-size: 2rem;
-  line-height: 2.25rem;
+  line-height: var(--leading-h1);
   margin-top: 0;
 }
 
 .prose > h2 {
   border-top: 1px solid var(--line);
   font-size: 1.5rem;
-  line-height: 2rem;
+  line-height: var(--leading-h2);
   padding-top: var(--space-4);
 }
 
 .prose > h3 {
   font-size: 1.25rem;
-  line-height: 1.5rem;
+  line-height: var(--leading-h3);
 }
 
 .prose > p,
@@ -345,7 +345,9 @@
 .prose > blockquote,
 .prose > td,
 .prose > th {
-  line-height: 1.5rem;
+  line-height: var(--leading-copy);
+  max-width: var(--measure);
+  text-wrap: pretty;
 }
 
 .prose > ul,
@@ -420,7 +422,7 @@
   font-family: var(--font-sans);
   font-size: 0.8rem;
   grid-column: 2 / 12;
-  line-height: 1.5rem;
+  line-height: var(--leading-copy);
   margin-top: var(--space-8);
 }
 
