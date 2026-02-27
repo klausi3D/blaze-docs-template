@@ -1,23 +1,24 @@
 :root {
   color-scheme: light;
 
-  --bg: #eeeee9;
-  --surface: #f8f8f4;
-  --text: #232622;
-  --text-strong: #151714;
-  --muted: #5d625c;
-  --line: #c4c9c1;
-  --line-strong: #a7aea4;
+  --bg: #efeee8;
+  --surface: #f7f6f2;
+  --surface-rail: #f1f0ea;
+  --text: #252824;
+  --text-strong: #171916;
+  --muted: #5f645d;
+  --line: #c2c7bf;
+  --line-strong: #a6ada3;
   --accent: #b25524;
-  --accent-soft: #ebded4;
-  --link: #24576b;
+  --accent-soft: #ebddd2;
+  --link: #245165;
   --focus: #0d5e7f;
 
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --unit: clamp(0.235rem, 0.225rem + 0.05vw, 0.27rem);
+  --unit: clamp(0.235rem, 0.226rem + 0.05vw, 0.27rem);
   --rhythm: calc(var(--unit) * 6);
   --space-1: calc(var(--unit) * 1);
   --space-2: calc(var(--unit) * 2);
@@ -27,13 +28,13 @@
   --space-6: calc(var(--unit) * 8);
   --space-8: calc(var(--unit) * 12);
 
-  --step--1: clamp(0.84rem, 0.81rem + 0.12vw, 0.92rem);
-  --step-0: clamp(0.98rem, 0.94rem + 0.2vw, 1.08rem);
-  --step-1: clamp(1.24rem, 1.14rem + 0.38vw, 1.42rem);
-  --step-2: clamp(1.58rem, 1.4rem + 0.62vw, 1.9rem);
-  --step-3: clamp(2.1rem, 1.8rem + 0.98vw, 2.58rem);
+  --step--1: clamp(0.84rem, 0.82rem + 0.1vw, 0.92rem);
+  --step-0: clamp(1rem, 0.97rem + 0.16vw, 1.08rem);
+  --step-1: clamp(1.2rem, 1.12rem + 0.3vw, 1.36rem);
+  --step-2: clamp(1.48rem, 1.34rem + 0.52vw, 1.76rem);
+  --step-3: clamp(1.82rem, 1.6rem + 0.76vw, 2.22rem);
 
-  --measure: 67ch;
+  --measure: 66ch;
   --shell-max: 96rem;
 
   --grid-columns: 12;
@@ -62,6 +63,7 @@ body {
   font-family: var(--font-serif);
   font-size: var(--step-0);
   line-height: var(--rhythm);
+  font-kerning: normal;
   position: relative;
   text-rendering: optimizeLegibility;
 }
