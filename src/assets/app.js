@@ -141,10 +141,18 @@ if (searchToggle && searchWrap && searchClose) {
   });
 }
 
+// Scroll-spy for TOC highlighting
+setupScrollSpy();
+
 setupGridDebug();
 setupRoutePrefetch();
 
 if (searchInput && searchResults) {
+  searchInput.addEventListener("focus", () => {
+    void ensureSearch();
+  });
+
+  searchInput.addEventListener("input", scheduleSearchQuery);
 
   document.addEventListener("click", (event) => {
     const target = event.target;
@@ -536,5 +544,121 @@ function writeGridPreference(enabled) {
     localStorage.setItem(gridStorageKey, enabled ? "1" : "0");
   } catch {
     // Ignore storage write failures.
+  }
+}
+
+function setupScrollSpy() {
+  // Get all TOC links (both in sidebar TOC and dropdown)
+  const tocLinks = document.querySelectorAll(".toc-link");
+  if (tocLinks.length === 0) {
+    return;
+  }
+
+  // Build map of heading IDs to their TOC links
+  const headingIds = [];
+  const linksByHeadingId = new Map();
+
+  tocLinks.forEach((link) => {
+    const href = link.getAttribute("href");
+    if (!href || !href.startsWith("#")) {
+      return;
+    }
+    const id = href.slice(1);
+    headingIds.push(id);
+    if (!linksByHeadingId.has(id)) {
+      linksByHeadingId.set(id, []);
+    }
+    linksByHeadingId.get(id).push(link);
+  });
+
+  if (headingIds.length === 0) {
+    return;
+  }
+
+  // Get all headings that match TOC entries
+  const headings = headingIds
+    .map((id) => document.getElementById(id))
+    .filter((el) => el !== null);
+
+  if (headings.length === 0) {
+    return;
+  }
+
+  let currentActiveId = null;
+
+  function setActiveHeading(id) {
+    if (id === currentActiveId) {
+      return;
+    }
+
+    // Remove active from previous
+    if (currentActiveId && linksByHeadingId.has(currentActiveId)) {
+      linksByHeadingId.get(currentActiveId).forEach((link) => {
+        link.classList.remove("is-active");
+      });
+    }
+
+    // Add active to new
+    if (id && linksByHeadingId.has(id)) {
+      linksByHeadingId.get(id).forEach((link) => {
+        link.classList.add("is-active");
+      });
+    }
+
+    currentActiveId = id;
+
+    // Update TOC toggle button text with current section
+    if (tocToggle && id) {
+      const activeLinks = linksByHeadingId.get(id);
+      if (activeLinks && activeLinks.length > 0) {
+        const sectionTitle = activeLinks[0].textContent?.trim();
+        if (sectionTitle && sectionTitle.length < 30) {
+          tocToggle.textContent = sectionTitle;
+        } else if (sectionTitle) {
+          tocToggle.textContent = sectionTitle.slice(0, 27) + "…";
+        }
+      }
+    }
+  }
+
+  // Use IntersectionObserver to track visible headings
+  const observerOptions = {
+    root: null,
+    rootMargin: "-80px 0px -70% 0px", // Trigger when heading is in top 30% of viewport
+    threshold: 0,
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    // Find the topmost visible heading
+    let topmostEntry = null;
+
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        if (!topmostEntry || entry.boundingClientRect.top < topmostEntry.boundingClientRect.top) {
+          topmostEntry = entry;
+        }
+      }
+    });
+
+    if (topmostEntry) {
+      setActiveHeading(topmostEntry.target.id);
+    }
+  }, observerOptions);
+
+  headings.forEach((heading) => {
+    observer.observe(heading);
+  });
+
+  // Set initial active based on scroll position
+  const initialHeading = headings.find((heading) => {
+    const rect = heading.getBoundingClientRect();
+    return rect.top >= 0 && rect.top < window.innerHeight * 0.5;
+  });
+
+  if (initialHeading) {
+    setActiveHeading(initialHeading.id);
+  } else if (headings.length > 0) {
+    // Default to first heading if none visible
+    setActiveHeading(headings[0].id);
   }
 }
