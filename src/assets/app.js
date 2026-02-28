@@ -260,6 +260,9 @@ if (readerToggle) {
     const nextBtn = readerContainer.querySelector("[data-next]");
     let current = 0;
 
+    const goPrev = () => { if (current > 0) { current--; update(); } };
+    const goNext = () => { if (current < total - 1) { current++; update(); } };
+
     const update = () => {
       const chunks = page.querySelectorAll(".page-chunk");
       if (chunks[current]) chunks[current].scrollIntoView({ behavior: "smooth", block: "start" });
@@ -268,11 +271,55 @@ if (readerToggle) {
       nextBtn.disabled = current >= total - 1;
     };
 
-    prevBtn.onclick = () => { if (current > 0) { current--; update(); } };
-    nextBtn.onclick = () => { if (current < total - 1) { current++; update(); } };
+    prevBtn.onclick = goPrev;
+    nextBtn.onclick = goNext;
+
+    // Keyboard navigation for paginated mode
+    document.addEventListener("keydown", (e) => {
+      if (document.documentElement.getAttribute("data-reader") !== "paginated") return;
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goPrev(); }
+      if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); goNext(); }
+    });
+
     update();
   }
 }
+
+// Global keyboard shortcuts
+document.addEventListener("keydown", (e) => {
+  // Skip if typing in input
+  if (e.target.matches("input, textarea")) return;
+
+  // Escape: exit reading mode or close dropdowns
+  if (e.key === "Escape") {
+    if (document.documentElement.hasAttribute("data-reader")) {
+      document.documentElement.removeAttribute("data-reader");
+      const rc = document.querySelector(".reader-container");
+      if (rc) rc.remove();
+    }
+  }
+
+  // 't' = toggle theme
+  if (e.key === "t" && !e.ctrlKey && !e.metaKey) {
+    themeToggle?.click();
+  }
+
+  // 'f' = toggle font size
+  if (e.key === "f" && !e.ctrlKey && !e.metaKey) {
+    fontToggle?.click();
+  }
+
+  // 'r' = cycle reading mode
+  if (e.key === "r" && !e.ctrlKey && !e.metaKey) {
+    readerToggle?.click();
+  }
+
+  // '/' = focus search
+  if (e.key === "/" && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    searchInput?.focus();
+  }
+});
 
 // Scroll-spy for TOC highlighting
 setupScrollSpy();
