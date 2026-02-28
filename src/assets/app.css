@@ -203,12 +203,13 @@
   display: flex;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-2);
   position: fixed;
-  top: 3.5rem;
+  top: 3rem;
   left: 0;
   right: 0;
   z-index: 15;
+  background: var(--bg);
 }
 
 .pages-toggle-wrap,
@@ -281,7 +282,7 @@
 .site-shell {
   margin: 0 auto;
   max-width: 50rem;
-  padding: 3rem var(--space-2) 0;
+  padding: 4rem var(--space-2) 0;
 }
 
 .doc-panel {
@@ -708,11 +709,12 @@
   /* Floating nav adjustments */
   .floating-nav {
     top: 2.5rem;
+    padding: var(--space-1) var(--space-2);
     gap: var(--space-1);
   }
 
   .site-shell {
-    padding-top: 2.5rem;
+    padding-top: 3rem;
   }
 
   .pages-toggle,
