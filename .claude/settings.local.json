@@ -4,7 +4,27 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(dir /s \"C:\\\\Projects\\\\git-pages-blaze\\\\src\")"
+      "Bash(dir /s \"C:\\\\Projects\\\\git-pages-blaze\\\\src\")",
+      "WebFetch(domain:makingsoftware.com)",
+      "WebSearch",
+      "WebFetch(domain:www.makingsoftware.com)",
+      "Bash(cd:*)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" status)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" log --oneline -3)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" add:*)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" commit -m \"$\\(cat <<''EOF''\nrefactor: adapt design to makingsoftware.com style and remove grid toggle\n\n- Remove grid toggle button, JS handlers, and CSS\n- Update color palette to teal-tinted scheme \\(#f0f5f4 bg, #00897b accent\\)\n- Brand now uses monospace font with teal color\n- Sidebar section headers use monospace uppercase\n- Navigation links use serif font\n- Code blocks have cleaner styling with subtle borders\n- Simplified H2 headings \\(removed top border\\)\n- Blockquotes use teal accent border\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" push)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" diff HEAD~1 --stat src/assets/app.js)",
+      "Bash(node tools/check-budgets.mjs:*)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" add tools/check-budgets.mjs)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" commit -m \"$\\(cat <<''EOF''\nchore: increase JS budget for scroll-spy feature\n\nBump Main JS brotli budget from 3200 to 3600 bytes to accommodate\nthe scroll-spy TOC feature added in previous commits.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" commit -m \"$\\(cat <<''EOF''\nstyle: redesign to warm editorial aesthetic with floating TOC\n\n- Warm cream/beige palette \\(#faf8f5 bg, #6b4c3a accent\\)\n- Headings use warm brown color, lighter weight\n- Minimal text-only topbar elements without heavy borders\n- TOC toggle floats centered below topbar as pill button\n- Pill-shaped search and buttons with subtle rounded borders\n- Softer shadows on dropdowns\n- Overall lighter, editorial feel matching reference\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" add src/assets/app.css)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" commit -m \"$\\(cat <<''EOF''\nfix: make floating nav pills stay fixed on scroll\n\n- Change floating-nav from sticky to fixed position\n- Add padding to site-shell to account for fixed nav height\n- Adjust mobile breakpoint positioning\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm install:*)",
+      "Bash(node tools/build.mjs:*)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" add -A)",
+      "Bash(git -C \"C:\\\\Projects\\\\git-pages-blaze\" commit -m \"$\\(cat <<''EOF''\nrefactor: unify header - pills ARE the topbar\n\n- Remove separate topbar, floating-nav merged into single site-header\n- Fixed header with: breadcrumb | Pages pill | TOC pill | search\n- Mobile: hide breadcrumb, show pills + search icon\n- Simplifies layout and fixes mobile visibility issues\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

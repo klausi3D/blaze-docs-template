@@ -47,30 +47,33 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TOPBAR
+   SITE HEADER — Unified nav bar with breadcrumb, pills, search
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.topbar {
+.site-header {
   background: var(--bg);
-  padding: var(--space-2) 0;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 20;
-}
-
-.topbar-inner {
-  align-items: center;
   display: flex;
-  justify-content: space-between;
-  margin: 0 auto;
-  max-width: 50rem;
-  padding: 0 var(--space-2);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--line);
 }
 
-.topbar-actions {
+.nav-pills {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+}
+
+.header-search {
+  display: flex;
+  align-items: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -196,21 +199,8 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FLOATING NAVIGATION
+   NAV PILL BUTTONS
    ═══════════════════════════════════════════════════════════════════════════ */
-
-.floating-nav {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-2);
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  right: 0;
-  z-index: 15;
-  background: var(--bg);
-}
 
 .pages-toggle-wrap,
 .toc-toggle-wrap {
@@ -282,7 +272,7 @@
 .site-shell {
   margin: 0 auto;
   max-width: 50rem;
-  padding: 4rem var(--space-2) 0;
+  padding: 3.5rem var(--space-2) 0;
 }
 
 .doc-panel {
@@ -604,11 +594,11 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SEARCH TOGGLE (mobile)
+   SEARCH TOGGLE (mobile only, hidden on desktop)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .search-toggle {
-  display: none;
+  display: none; /* Shown via media query on mobile */
   align-items: center;
   justify-content: center;
   background: transparent;
@@ -630,7 +620,7 @@
 }
 
 .search-close {
-  display: none;
+  display: none; /* Shown when search is expanded */
   align-items: center;
   justify-content: center;
   background: transparent;
@@ -656,21 +646,26 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 48rem) {
-  .topbar-inner {
+  .site-header {
     gap: var(--space-1);
-    padding: var(--space-1) var(--space-2);
+    padding: 0.5rem var(--space-1);
   }
 
-  .breadcrumb-current {
-    max-width: 10rem;
+  .breadcrumb {
+    display: none;
   }
 
   .search-toggle {
     display: inline-flex;
   }
 
+  .header-search .search-wrap {
+    display: none;
+  }
+
   /* Search: hidden by default, expands as overlay */
-  .search-wrap {
+  .search-wrap.is-expanded {
+    display: flex;
     position: fixed;
     top: 0;
     left: 0;
@@ -679,38 +674,24 @@
     border-bottom: 1px solid var(--line);
     padding: var(--space-2);
     z-index: 30;
-    display: flex;
     gap: var(--space-1);
-    transform: translateY(-100%);
-    transition: transform 0.2s ease;
     max-width: none;
   }
 
-  .search-wrap.is-expanded {
-    transform: translateY(0);
-  }
-
-  .search-wrap .search-input {
+  .search-wrap.is-expanded .search-input {
     flex: 1;
   }
 
-  .search-wrap .search-close {
+  .search-wrap.is-expanded .search-close {
     display: flex;
   }
 
-  .search-wrap .search-results {
+  .search-wrap.is-expanded .search-results {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
     border-radius: 0;
-  }
-
-  /* Floating nav adjustments */
-  .floating-nav {
-    top: 2.5rem;
-    padding: var(--space-1) var(--space-2);
-    gap: var(--space-1);
   }
 
   .site-shell {
@@ -744,12 +725,7 @@
     display: none;
   }
 
-  .search-wrap .search-close {
+  .search-close {
     display: none;
-  }
-
-  .search-wrap {
-    position: relative;
-    transform: none;
   }
 }
