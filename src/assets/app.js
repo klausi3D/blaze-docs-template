@@ -20,6 +20,7 @@ const tocDropdown = document.querySelector("[data-toc-dropdown]");
 const searchToggle = document.querySelector("[data-search-toggle]");
 const searchWrap = document.querySelector("[data-search-wrap]");
 const searchClose = document.querySelector("[data-search-close]");
+const themeToggle = document.querySelector("[data-theme-toggle]");
 
 const state = {
   docs: null,
@@ -149,6 +150,22 @@ if (searchToggle && searchWrap && searchClose) {
       searchWrap.classList.remove("is-expanded");
       searchToggle.focus();
     }
+  });
+}
+
+// Theme toggle
+if (themeToggle) {
+  const stored = localStorage.getItem("theme");
+  if (stored) {
+    document.documentElement.setAttribute("data-theme", stored);
+  }
+  themeToggle.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme");
+    const prefersDark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = current === "dark" || (!current && prefersDark);
+    const next = isDark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
   });
 }
 
