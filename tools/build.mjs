@@ -1276,6 +1276,9 @@ function renderPageHtml({
   const description = page.description || "Fast, static documentation template.";
   const robots = noindex ? '<meta name="robots" content="noindex">' : "";
 
+  const firstHeading = page.headings.length > 0 ? page.headings[0].text : "Contents";
+  const tocButtonText = firstHeading.length > 28 ? firstHeading.slice(0, 25) + "..." : firstHeading;
+
   return `<!doctype html>
 <html lang="en" data-site-root="${escapeAttribute(siteRoot)}" data-search-worker="assets/${searchWorkerFile}" data-search-index="assets/${searchIndexFile}" data-sw="${swFile}">
 <head>
@@ -1296,42 +1299,45 @@ function renderPageHtml({
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="topbar">
     <div class="topbar-inner">
-      <button class="menu-toggle" data-menu-toggle type="button" aria-label="Toggle navigation">Menu</button>
-      <a class="brand" href="${escapeAttribute(relativeHref(page.outputPath, ""))}">Blaze Docs</a>
-      <div class="toc-toggle-wrap">
-        <button class="toc-toggle" data-toc-toggle type="button" aria-label="Table of contents" aria-expanded="false">Contents</button>
-        <nav class="toc-dropdown" data-toc-dropdown aria-label="Table of contents">
-          <ul class="toc-list">${tocLinks}</ul>
-        </nav>
-      </div>
-      <button class="search-toggle" data-search-toggle type="button" aria-label="Open search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      </button>
-      <div class="search-wrap" data-search-wrap>
-        <label class="sr-only" for="site-search">Search documentation</label>
-        <input class="search-input" id="site-search" data-search-input type="search" placeholder="Search docs" autocomplete="off" spellcheck="false">
-        <button class="search-close" data-search-close type="button" aria-label="Close search">&times;</button>
-        <ul class="search-results" data-search-results aria-live="polite"></ul>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="${escapeAttribute(relativeHref(page.outputPath, ""))}" class="breadcrumb-home" aria-label="Home">&lsaquo; &rsaquo;</a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">${escapeHtml(page.title)}</span>
+      </nav>
+      <div class="topbar-actions">
+        <button class="search-toggle" data-search-toggle type="button" aria-label="Open search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <div class="search-wrap" data-search-wrap>
+          <label class="sr-only" for="site-search">Search documentation</label>
+          <input class="search-input" id="site-search" data-search-input type="search" placeholder="Search" autocomplete="off" spellcheck="false">
+          <button class="search-close" data-search-close type="button" aria-label="Close search">&times;</button>
+          <ul class="search-results" data-search-results aria-live="polite"></ul>
+        </div>
       </div>
     </div>
   </header>
-  <div class="site-shell" data-site-shell>
-    <aside class="sidebar" aria-label="Primary navigation">
-      <h2>Pages</h2>
-      <ul class="nav-list">${navLinks}</ul>
-    </aside>
-    <div class="content-column">
-      <main id="main-content" class="doc-panel">
-        <article class="prose">
-          ${page.bodyHtml}
-        </article>
-        <p class="doc-footer">Generated at ${escapeHtml(generatedAt)}</p>
-      </main>
-      <aside class="toc" aria-label="On this page">
-        <h2>On this page</h2>
-        <ul class="toc-list">${tocLinks}</ul>
-      </aside>
+  <div class="floating-nav">
+    <div class="pages-toggle-wrap">
+      <button class="pages-toggle" data-pages-toggle type="button" aria-label="Pages" aria-expanded="false">Pages</button>
+      <nav class="pages-dropdown" data-pages-dropdown aria-label="Site pages">
+        <ul class="nav-list">${navLinks}</ul>
+      </nav>
     </div>
+    <div class="toc-toggle-wrap">
+      <button class="toc-toggle" data-toc-toggle type="button" aria-label="Table of contents" aria-expanded="false">${escapeHtml(tocButtonText)}</button>
+      <nav class="toc-dropdown" data-toc-dropdown aria-label="Table of contents">
+        <ul class="toc-list">${tocLinks}</ul>
+      </nav>
+    </div>
+  </div>
+  <div class="site-shell">
+    <main id="main-content" class="doc-panel">
+      <article class="prose">
+        ${page.bodyHtml}
+      </article>
+      <p class="doc-footer">Generated at ${escapeHtml(generatedAt)}</p>
+    </main>
   </div>
 </body>
 </html>`;

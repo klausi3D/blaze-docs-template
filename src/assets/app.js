@@ -13,8 +13,8 @@ const LINK_PREFETCH_SUPPORTED = (() => {
 
 const searchInput = document.querySelector("[data-search-input]");
 const searchResults = document.querySelector("[data-search-results]");
-const menuToggle = document.querySelector("[data-menu-toggle]");
-const shell = document.querySelector("[data-site-shell]");
+const pagesToggle = document.querySelector("[data-pages-toggle]");
+const pagesDropdown = document.querySelector("[data-pages-dropdown]");
 const tocToggle = document.querySelector("[data-toc-toggle]");
 const tocDropdown = document.querySelector("[data-toc-dropdown]");
 const searchToggle = document.querySelector("[data-search-toggle]");
@@ -33,40 +33,48 @@ const state = {
   prefetchedDocuments: new Set(),
 };
 
-if (menuToggle && shell) {
-  menuToggle.addEventListener("click", () => {
-    shell.classList.toggle("nav-open");
+// Pages dropdown toggle
+if (pagesToggle && pagesDropdown) {
+  pagesToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    // Close TOC if open
+    if (tocDropdown?.classList.contains("is-open")) {
+      tocDropdown.classList.remove("is-open");
+      tocToggle?.setAttribute("aria-expanded", "false");
+    }
+    const isOpen = pagesDropdown.classList.toggle("is-open");
+    pagesToggle.setAttribute("aria-expanded", String(isOpen));
   });
 
-  // Close menu when clicking nav links
-  const navLinks = shell.querySelectorAll(".nav-link");
-  navLinks.forEach((link) => {
-    link.addEventListener("click", () => {
-      shell.classList.remove("nav-open");
-    });
-  });
-
-  // Close menu when clicking backdrop (outside sidebar)
+  // Close on outside click
   document.addEventListener("click", (event) => {
-    if (!shell.classList.contains("nav-open")) {
+    if (!pagesDropdown.classList.contains("is-open")) {
       return;
     }
     const target = event.target;
     if (!(target instanceof Element)) {
       return;
     }
-    const isInsideSidebar = target.closest(".sidebar");
-    const isMenuToggle = target.closest("[data-menu-toggle]");
-    if (!isInsideSidebar && !isMenuToggle) {
-      shell.classList.remove("nav-open");
+    if (!target.closest("[data-pages-toggle]") && !target.closest("[data-pages-dropdown]")) {
+      pagesDropdown.classList.remove("is-open");
+      pagesToggle.setAttribute("aria-expanded", "false");
     }
   });
 
-  // Close menu on Escape key
+  // Close on link click
+  pagesDropdown.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      pagesDropdown.classList.remove("is-open");
+      pagesToggle.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  // Close on Escape
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && shell.classList.contains("nav-open")) {
-      shell.classList.remove("nav-open");
-      menuToggle.focus();
+    if (event.key === "Escape" && pagesDropdown.classList.contains("is-open")) {
+      pagesDropdown.classList.remove("is-open");
+      pagesToggle.setAttribute("aria-expanded", "false");
+      pagesToggle.focus();
     }
   });
 }
@@ -75,6 +83,11 @@ if (menuToggle && shell) {
 if (tocToggle && tocDropdown) {
   tocToggle.addEventListener("click", (event) => {
     event.stopPropagation();
+    // Close Pages if open
+    if (pagesDropdown?.classList.contains("is-open")) {
+      pagesDropdown.classList.remove("is-open");
+      pagesToggle?.setAttribute("aria-expanded", "false");
+    }
     const isOpen = tocDropdown.classList.toggle("is-open");
     tocToggle.setAttribute("aria-expanded", String(isOpen));
   });
