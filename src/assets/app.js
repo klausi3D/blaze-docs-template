@@ -216,29 +216,53 @@ if (readerToggle) {
     readerContainer.className = "reader-container";
     readerContainer.innerHTML = `<div class="reader-content"><div class="reader-page"></div></div><nav class="reader-nav"><button data-prev>← Prev</button><span class="reader-progress"></span><button data-next>Next →</button></nav>`;
     document.body.appendChild(readerContainer);
+
     const page = readerContainer.querySelector(".reader-page");
-    page.innerHTML = prose.innerHTML;
-    setupPagination();
+    const elements = Array.from(prose.children);
+    const pageHeight = page.clientHeight - 48;
+    let chunks = [], chunk = [];
+    let chunkHeight = 0;
+
+    elements.forEach(el => {
+      const clone = el.cloneNode(true);
+      const h = el.offsetHeight + 24;
+      if (chunkHeight + h > pageHeight && chunk.length > 0) {
+        chunks.push(chunk);
+        chunk = [];
+        chunkHeight = 0;
+      }
+      chunk.push(clone);
+      chunkHeight += h;
+    });
+    if (chunk.length) chunks.push(chunk);
+
+    chunks.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "page-chunk";
+      const inner = document.createElement("div");
+      inner.className = "prose";
+      c.forEach(el => inner.appendChild(el));
+      div.appendChild(inner);
+      page.appendChild(div);
+    });
+
+    setupPagination(chunks.length);
   }
 
   function destroyPaginated() {
     if (readerContainer) { readerContainer.remove(); readerContainer = null; }
   }
 
-  function setupPagination() {
-    const content = readerContainer.querySelector(".reader-content");
+  function setupPagination(total) {
     const page = readerContainer.querySelector(".reader-page");
     const progress = readerContainer.querySelector(".reader-progress");
     const prevBtn = readerContainer.querySelector("[data-prev]");
     const nextBtn = readerContainer.querySelector("[data-next]");
-    let current = 0, total = 1;
+    let current = 0;
 
     const update = () => {
-      const w = content.clientWidth - 48;
-      page.style.columnWidth = w + "px";
-      total = Math.ceil(page.scrollWidth / w);
-      current = Math.min(current, total - 1);
-      page.style.transform = `translateX(-${current * w}px)`;
+      const chunks = page.querySelectorAll(".page-chunk");
+      if (chunks[current]) chunks[current].scrollIntoView({ behavior: "smooth", block: "start" });
       progress.textContent = `${current + 1} / ${total}`;
       prevBtn.disabled = current === 0;
       nextBtn.disabled = current >= total - 1;
@@ -246,7 +270,6 @@ if (readerToggle) {
 
     prevBtn.onclick = () => { if (current > 0) { current--; update(); } };
     nextBtn.onclick = () => { if (current < total - 1) { current++; update(); } };
-    window.addEventListener("resize", update);
     update();
   }
 }

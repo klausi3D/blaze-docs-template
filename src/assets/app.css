@@ -112,8 +112,10 @@
 [data-reader="paginated"] .site-shell { display: none; }
 .reader-container { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 10; flex-direction: column; }
 [data-reader="paginated"] .reader-container { display: flex; }
-.reader-content { flex: 1; overflow: hidden; padding: var(--space-4); display: flex; align-items: center; justify-content: center; }
-.reader-page { max-width: var(--measure); max-height: 100%; overflow: hidden; column-width: 100vw; column-gap: 0; }
+.reader-content { flex: 1; overflow: hidden; }
+.reader-page { height: 100%; padding: var(--space-4); overflow-y: auto; scroll-snap-type: y mandatory; }
+.reader-page .page-chunk { min-height: 100%; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: flex-start; padding-bottom: var(--space-4); }
+.reader-page .prose { max-width: var(--measure); margin: 0 auto; }
 .reader-nav { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2); border-top: 1px solid var(--line); }
 .reader-nav button { background: none; border: 1px solid var(--line); border-radius: var(--radius-full); color: var(--text); cursor: pointer; padding: 0.5rem 1rem; font: var(--step--1) var(--font-sans); }
 .reader-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
