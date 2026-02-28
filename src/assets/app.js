@@ -22,6 +22,7 @@ const searchWrap = document.querySelector("[data-search-wrap]");
 const searchClose = document.querySelector("[data-search-close]");
 const themeToggle = document.querySelector("[data-theme-toggle]");
 const fontToggle = document.querySelector("[data-font-toggle]");
+const readerToggle = document.querySelector("[data-reader-toggle]");
 
 const state = {
   docs: null,
@@ -178,6 +179,76 @@ if (fontToggle) {
     document.documentElement.setAttribute("data-font", next);
     localStorage.setItem("font", next);
   });
+}
+
+// Reader mode
+if (readerToggle) {
+  const modes = ["", "immersive", "paginated"];
+  let modeIndex = 0;
+  let lastScroll = 0;
+  let readerContainer = null;
+
+  readerToggle.addEventListener("click", () => {
+    modeIndex = (modeIndex + 1) % modes.length;
+    const mode = modes[modeIndex];
+    if (mode) {
+      document.documentElement.setAttribute("data-reader", mode);
+      if (mode === "paginated") initPaginated();
+    } else {
+      document.documentElement.removeAttribute("data-reader");
+      destroyPaginated();
+    }
+  });
+
+  // Immersive: hide header on scroll down
+  window.addEventListener("scroll", () => {
+    if (document.documentElement.getAttribute("data-reader") !== "immersive") return;
+    const y = window.scrollY;
+    if (y > lastScroll && y > 60) document.documentElement.classList.add("header-hidden");
+    else document.documentElement.classList.remove("header-hidden");
+    lastScroll = y;
+  }, { passive: true });
+
+  function initPaginated() {
+    const prose = document.querySelector(".prose");
+    if (!prose || readerContainer) return;
+    readerContainer = document.createElement("div");
+    readerContainer.className = "reader-container";
+    readerContainer.innerHTML = `<div class="reader-content"><div class="reader-page"></div></div><nav class="reader-nav"><button data-prev>← Prev</button><span class="reader-progress"></span><button data-next>Next →</button></nav>`;
+    document.body.appendChild(readerContainer);
+    const page = readerContainer.querySelector(".reader-page");
+    page.innerHTML = prose.innerHTML;
+    setupPagination();
+  }
+
+  function destroyPaginated() {
+    if (readerContainer) { readerContainer.remove(); readerContainer = null; }
+  }
+
+  function setupPagination() {
+    const content = readerContainer.querySelector(".reader-content");
+    const page = readerContainer.querySelector(".reader-page");
+    const progress = readerContainer.querySelector(".reader-progress");
+    const prevBtn = readerContainer.querySelector("[data-prev]");
+    const nextBtn = readerContainer.querySelector("[data-next]");
+    let current = 0, total = 1;
+
+    const update = () => {
+      const w = content.clientWidth - 48;
+      page.style.columnWidth = w + "px";
+      total = Math.ceil(page.scrollWidth / w);
+      current = Math.min(current, total - 1);
+      page.style.transform = `translateX(-${current * w}px)`;
+      progress.textContent = `${current + 1} / ${total}`;
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current >= total - 1;
+    };
+
+    prevBtn.onclick = () => { if (current > 0) { current--; update(); } };
+    nextBtn.onclick = () => { if (current < total - 1) { current++; update(); } };
+    window.addEventListener("resize", update);
+    update();
+  }
 }
 
 // Scroll-spy for TOC highlighting

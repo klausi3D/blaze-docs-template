@@ -20,8 +20,8 @@ const budgets = [
   {
     label: "Main JS",
     pattern: /^app\.[a-f0-9]{10}\.js$/,
-    maxBytes: 19_000,
-    maxBrotliBytes: 4_200,
+    maxBytes: 22_000,
+    maxBrotliBytes: 4_800,
   },
   {
     label: "Search worker",
