@@ -1,23 +1,23 @@
 :root {
   color-scheme: light;
 
-  /* Teal-tinted palette inspired by makingsoftware.com */
-  --bg: #f0f5f4;
-  --surface: #f8fafa;
-  --surface-rail: #f4f8f7;
+  /* Warm editorial palette */
+  --bg: #faf8f5;
+  --surface: #fdfcfa;
+  --surface-rail: #f8f6f2;
   --surface-elevated: #fff;
-  --text: #2d3436;
-  --text-strong: #1a1d1e;
-  --muted: #636e72;
-  --line: #dfe6e5;
-  --line-strong: #b2bec3;
+  --text: #4a4540;
+  --text-strong: #2c2825;
+  --muted: #8a8480;
+  --line: #e8e4df;
+  --line-strong: #d0cbc5;
 
-  /* Accent - teal, for links and highlights */
-  --accent: #00897b;
-  --accent-hover: #00695c;
-  --accent-soft: #e0f2f1;
-  --link: #00897b;
-  --focus: #00897b;
+  /* Accent - warm brown, for headings and highlights */
+  --accent: #6b4c3a;
+  --accent-hover: #543a2c;
+  --accent-soft: #f5f0eb;
+  --link: #6b4c3a;
+  --focus: #6b4c3a;
 
   /* Typography */
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
