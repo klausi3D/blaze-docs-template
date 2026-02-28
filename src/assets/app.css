@@ -100,6 +100,11 @@
 .pill-wrap { position: relative; }
 .header-actions { display: flex; align-items: center; gap: var(--space-1); }
 
+/* Font size toggle */
+.icon-font { font-family: var(--font-serif); font-size: 14px; font-weight: 600; line-height: 1; }
+[data-font="large"] { font-size: 112.5%; }
+[data-font="large"] .icon-font { text-decoration: underline; }
+
 /* Theme toggle icons */
 [data-theme-toggle] .icon-moon { display: none; }
 [data-theme="dark"] [data-theme-toggle] .icon-sun { display: none; }

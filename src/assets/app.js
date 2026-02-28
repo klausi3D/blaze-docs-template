@@ -21,6 +21,7 @@ const searchToggle = document.querySelector("[data-search-toggle]");
 const searchWrap = document.querySelector("[data-search-wrap]");
 const searchClose = document.querySelector("[data-search-close]");
 const themeToggle = document.querySelector("[data-theme-toggle]");
+const fontToggle = document.querySelector("[data-font-toggle]");
 
 const state = {
   docs: null,
@@ -156,9 +157,7 @@ if (searchToggle && searchWrap && searchClose) {
 // Theme toggle
 if (themeToggle) {
   const stored = localStorage.getItem("theme");
-  if (stored) {
-    document.documentElement.setAttribute("data-theme", stored);
-  }
+  if (stored) document.documentElement.setAttribute("data-theme", stored);
   themeToggle.addEventListener("click", () => {
     const current = document.documentElement.getAttribute("data-theme");
     const prefersDark = matchMedia("(prefers-color-scheme: dark)").matches;
@@ -166,6 +165,18 @@ if (themeToggle) {
     const next = isDark ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("theme", next);
+  });
+}
+
+// Font size toggle
+if (fontToggle) {
+  const stored = localStorage.getItem("font");
+  if (stored) document.documentElement.setAttribute("data-font", stored);
+  fontToggle.addEventListener("click", () => {
+    const isLarge = document.documentElement.getAttribute("data-font") === "large";
+    const next = isLarge ? "normal" : "large";
+    document.documentElement.setAttribute("data-font", next);
+    localStorage.setItem("font", next);
   });
 }
 
