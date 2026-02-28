@@ -1307,7 +1307,6 @@ function renderPageHtml({
       <button class="search-toggle" data-search-toggle type="button" aria-label="Open search">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       </button>
-      <button class="grid-toggle" data-grid-toggle type="button" aria-label="Toggle typography grid" aria-pressed="false">Grid</button>
       <div class="search-wrap" data-search-wrap>
         <label class="sr-only" for="site-search">Search documentation</label>
         <input class="search-input" id="site-search" data-search-input type="search" placeholder="Search docs" autocomplete="off" spellcheck="false">

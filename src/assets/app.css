@@ -51,8 +51,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .topbar {
-  background: var(--surface);
-  box-shadow: 0 1px 0 var(--line);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
   height: var(--space-6); /* 3.6rem = 3 baselines */
   position: sticky;
   top: 0;
@@ -70,42 +70,31 @@
 }
 
 .brand {
-  color: var(--text-strong);
-  font-family: var(--font-sans);
+  color: var(--accent);
+  font-family: var(--font-mono);
   font-size: var(--step--1);
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
   line-height: 1.2;
   text-decoration: none;
   text-transform: uppercase;
 }
 
-.grid-toggle,
 .menu-toggle {
   background: transparent;
   border: 1px solid var(--line);
   color: var(--muted);
   cursor: pointer;
+  display: none;
   font-family: var(--font-sans);
   font-size: var(--step--1);
   line-height: 1.2;
   padding: var(--space-1) var(--space-1);
 }
 
-.grid-toggle:hover,
 .menu-toggle:hover {
   border-color: var(--text);
   color: var(--text);
-}
-
-.grid-toggle[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--surface);
-}
-
-.menu-toggle {
-  display: none;
 }
 
 .search-wrap {
@@ -173,17 +162,17 @@
 .result-title {
   color: var(--text-strong);
   display: block;
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: var(--step--1);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.4;
 }
 
 .result-snippet {
   color: var(--muted);
   display: block;
   font-size: var(--step--1);
-  line-height: 1.2;
+  line-height: 1.4;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -206,9 +195,9 @@
 .sidebar h2,
 .toc h2 {
   color: var(--text-strong);
-  font-family: var(--font-serif);
+  font-family: var(--font-mono);
   font-size: var(--step--1);
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.02em;
   line-height: 1.2;
   margin: 0 0 var(--space-1);
@@ -231,10 +220,10 @@
 .toc-link {
   color: var(--muted);
   display: block;
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: var(--step--1);
-  line-height: 1.2;
-  padding: 0;
+  line-height: 1.4;
+  padding: 0.15em 0;
   text-decoration: none;
 }
 
@@ -269,6 +258,7 @@
 
 .doc-panel {
   background: var(--surface);
+  border-left: 1px solid var(--line);
   padding: var(--space-4) var(--space-4); /* 2 baselines top */
 }
 
@@ -319,10 +309,8 @@
 }
 
 .prose > h2 {
-  border-top: 1px solid var(--line);
   font-size: var(--step-1);
   margin-top: var(--space-6);
-  padding-top: var(--space-2);
 }
 
 .prose > h3 {
@@ -393,25 +381,26 @@
 
 /* Code blocks */
 .prose > pre {
-  background: var(--accent-soft);
-  border-left: 3px solid var(--line-strong);
+  background: var(--surface-elevated);
+  border: 1px solid var(--line);
   color: var(--text-strong);
   font-size: var(--step--1);
-  line-height: 1.2;
+  line-height: 1.4;
   overflow: auto;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2);
 }
 
 .prose code,
 .prose kbd,
 .prose samp {
   font-family: var(--font-mono);
-  font-size: 0.875em;
+  font-size: 0.85em;
 }
 
 .prose :not(pre) > code {
-  background: var(--accent-soft);
-  padding: 0.1em 0.25em;
+  background: var(--surface-elevated);
+  border: 1px solid var(--line);
+  padding: 0.1em 0.35em;
 }
 
 /* Tables */
@@ -461,7 +450,7 @@
 
 /* Blockquote */
 .prose > blockquote {
-  border-left: 3px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
   color: var(--text);
   margin-left: 0;
   padding-left: var(--space-2);
@@ -556,11 +545,11 @@
   display: none;
   align-items: center;
   gap: 0.25em;
-  background: var(--surface);
+  background: transparent;
   border: 1px solid var(--line);
-  color: var(--text);
+  color: var(--muted);
   cursor: pointer;
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: var(--step--1);
   font-weight: 400;
   line-height: 1.2;
@@ -611,7 +600,7 @@
   display: block;
   padding: var(--space-1) var(--space-3);
   color: var(--muted);
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: var(--step--1);
   line-height: 1.4;
   text-decoration: none;
@@ -750,10 +739,6 @@
     display: inline-flex;
   }
 
-  .grid-toggle {
-    order: 5;
-  }
-
   /* Search: hidden by default, expands as overlay */
   .search-wrap {
     position: fixed;
@@ -844,7 +829,6 @@
     align-items: center;
   }
 
-  .grid-toggle,
   .menu-toggle,
   .search-toggle,
   .toc-toggle {
