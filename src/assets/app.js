@@ -157,6 +157,8 @@ setupScrollSpy();
 
 setupRoutePrefetch();
 
+setupFootnoteTooltips();
+
 if (searchInput && searchResults) {
   searchInput.addEventListener("focus", () => {
     void ensureSearch();
@@ -612,4 +614,41 @@ function setupScrollSpy() {
     // Default to first heading if none visible
     setActiveHeading(headings[0].id);
   }
+}
+
+function setupFootnoteTooltips() {
+  let active = null;
+  let timer = null;
+
+  document.querySelectorAll(".footnote-ref").forEach((ref) => {
+    const link = ref.querySelector("a[href^='#fn-']");
+    if (!link) return;
+
+    const fn = document.getElementById(link.getAttribute("href").slice(1));
+    if (!fn) return;
+
+    const clone = fn.cloneNode(true);
+    clone.querySelectorAll(".footnote-backrefs").forEach((el) => el.remove());
+    const html = clone.innerHTML.trim();
+
+    ref.addEventListener("mouseenter", () => {
+      clearTimeout(timer);
+      active?.remove();
+      const tip = document.createElement("div");
+      tip.className = "footnote-tooltip";
+      tip.innerHTML = html;
+      ref.appendChild(tip);
+      requestAnimationFrame(() => {
+        const r = tip.getBoundingClientRect();
+        if (r.left < 8) { tip.style.left = "0"; tip.style.transform = "none"; }
+        else if (r.right > innerWidth - 8) { tip.style.left = "auto"; tip.style.right = "0"; tip.style.transform = "none"; }
+        tip.classList.add("is-visible");
+      });
+      active = tip;
+    });
+
+    ref.addEventListener("mouseleave", () => {
+      timer = setTimeout(() => { active?.remove(); active = null; }, 100);
+    });
+  });
 }

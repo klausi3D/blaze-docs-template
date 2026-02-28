@@ -169,7 +169,42 @@
 .prose hr { border: 0; border-top: 1px solid var(--line); margin-top: var(--space-4); }
 
 /* Footnotes */
+.prose .footnote-ref { position: relative; }
 .prose .footnote-ref a { color: var(--accent); font: 600 0.75em var(--font-sans); text-decoration: none; vertical-align: super; }
+
+/* Footnote tooltip */
+.footnote-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px var(--shadow);
+  padding: var(--space-1) var(--space-2);
+  font: 400 var(--step--1)/1.4 var(--font-serif);
+  color: var(--text);
+  max-width: 320px;
+  min-width: 200px;
+  width: max-content;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.footnote-tooltip.is-visible { opacity: 1; }
+.footnote-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--surface-elevated);
+}
+.footnote-tooltip p { margin: 0; }
+.footnote-tooltip p + p { margin-top: 0.5em; }
 .prose .footnotes { border-top: 1px solid var(--line); font-size: var(--step--1); margin-top: var(--space-6); padding-top: var(--space-2); }
 .prose .footnotes h2 { font-size: var(--step-0); margin: 0; }
 .prose .footnotes ol { margin: var(--baseline) 0 0; padding-left: var(--space-3); }
