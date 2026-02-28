@@ -1259,18 +1259,18 @@ function renderPageHtml({
     .map((item) => {
       const href = relativeHref(page.outputPath, item.urlPath || "");
       const activeClass = item.slug === page.slug ? " is-active" : "";
-      return `<li><a data-prefetch class="nav-link${activeClass}" href="${escapeAttribute(href)}">${escapeHtml(item.title)}</a></li>`;
+      return `<li><a data-prefetch class="menu-link${activeClass}" href="${escapeAttribute(href)}">${escapeHtml(item.title)}</a></li>`;
     })
     .join("");
 
   const tocLinks = page.headings.length
     ? page.headings
         .map((heading) => {
-          const depthClass = heading.depth === 3 ? " toc-depth-3" : "";
-          return `<li><a class="toc-link${depthClass}" href="#${heading.id}">${escapeHtml(heading.text)}</a></li>`;
+          const indentClass = heading.depth === 3 ? " menu-link--indent" : "";
+          return `<li><a class="menu-link toc-link${indentClass}" href="#${heading.id}">${escapeHtml(heading.text)}</a></li>`;
         })
         .join("")
-    : '<li><span class="toc-link">No sections</span></li>';
+    : '<li><span class="menu-link">No sections</span></li>';
 
   const title = page.urlPath ? `${page.title} | Blaze Docs` : page.title;
   const description = page.description || "Fast, static documentation template.";
@@ -1304,28 +1304,28 @@ function renderPageHtml({
       <span class="breadcrumb-current">${escapeHtml(page.title)}</span>
     </nav>
     <div class="nav-pills">
-      <div class="pages-toggle-wrap">
-        <button class="pages-toggle" data-pages-toggle type="button" aria-label="Pages" aria-expanded="false">Pages</button>
-        <nav class="pages-dropdown" data-pages-dropdown aria-label="Site pages">
-          <ul class="nav-list">${navLinks}</ul>
+      <div class="pill-wrap">
+        <button class="pill-btn pill-btn--caret" data-pages-toggle type="button" aria-expanded="false">Pages</button>
+        <nav class="dropdown" data-pages-dropdown aria-label="Site pages">
+          <ul class="menu-list">${navLinks}</ul>
         </nav>
       </div>
-      <div class="toc-toggle-wrap">
-        <button class="toc-toggle" data-toc-toggle type="button" aria-label="Table of contents" aria-expanded="false">${escapeHtml(tocButtonText)}</button>
-        <nav class="toc-dropdown" data-toc-dropdown aria-label="Table of contents">
-          <ul class="toc-list">${tocLinks}</ul>
+      <div class="pill-wrap">
+        <button class="pill-btn pill-btn--caret" data-toc-toggle type="button" aria-expanded="false">${escapeHtml(tocButtonText)}</button>
+        <nav class="dropdown" data-toc-dropdown aria-label="Table of contents">
+          <ul class="menu-list">${tocLinks}</ul>
         </nav>
       </div>
     </div>
     <div class="header-search">
-      <button class="search-toggle" data-search-toggle type="button" aria-label="Open search">
+      <button class="pill-btn pill-btn--icon search-toggle" data-search-toggle type="button" aria-label="Open search">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       </button>
       <div class="search-wrap" data-search-wrap>
         <label class="sr-only" for="site-search">Search documentation</label>
-        <input class="search-input" id="site-search" data-search-input type="search" placeholder="Search" autocomplete="off" spellcheck="false">
-        <button class="search-close" data-search-close type="button" aria-label="Close search">&times;</button>
-        <ul class="search-results" data-search-results aria-live="polite"></ul>
+        <input class="input" id="site-search" data-search-input type="search" placeholder="Search" autocomplete="off" spellcheck="false">
+        <button class="pill-btn pill-btn--close search-close" data-search-close type="button" aria-label="Close search">&times;</button>
+        <ul class="dropdown search-results" data-search-results aria-live="polite"></ul>
       </div>
     </div>
   </header>

@@ -1,129 +1,99 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
-  /* Warm editorial palette */
+  /* Light theme (default) */
   --bg: #faf8f5;
   --surface: #fdfcfa;
-  --surface-rail: #f8f6f2;
   --surface-elevated: #fff;
   --text: #4a4540;
   --text-strong: #2c2825;
   --muted: #8a8480;
   --line: #e8e4df;
   --line-strong: #d0cbc5;
-
-  /* Accent - warm brown, for headings and highlights */
   --accent: #6b4c3a;
   --accent-hover: #543a2c;
   --accent-soft: #f5f0eb;
-  --link: #6b4c3a;
-  --focus: #6b4c3a;
+  --shadow: rgba(0, 0, 0, 0.1);
+  --shadow-sm: rgba(0, 0, 0, 0.06);
 
   /* Typography */
-  --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
-  --font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-serif: "IBM Plex Serif", Georgia, serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  /*
-   * BASELINE GRID — 120% line-height
-   * Body: 1rem @ 1.2 line-height = 1.2rem baseline
-   * All vertical spacing: multiples of 1.2rem
-   */
+  /* Spacing (baseline: 1.2rem) */
+  --space-1: 0.6rem;
+  --space-2: 1.2rem;
+  --space-3: 1.8rem;
+  --space-4: 2.4rem;
+  --space-6: 3.6rem;
   --baseline: 1.2rem;
-
-  /* Spacing scale - multiples of baseline */
-  --space-1: 0.6rem;   /* 0.5 baseline */
-  --space-2: 1.2rem;   /* 1 baseline */
-  --space-3: 1.8rem;   /* 1.5 baselines */
-  --space-4: 2.4rem;   /* 2 baselines */
-  --space-5: 3rem;     /* 2.5 baselines */
-  --space-6: 3.6rem;   /* 3 baselines */
-  --space-8: 4.8rem;   /* 4 baselines */
 
   /* Type scale */
   --step--1: 0.875rem;
   --step-0: 1rem;
   --step-1: 1.25rem;
   --step-2: 1.5rem;
-  --step-3: 2rem;
 
   /* Layout */
   --measure: 65ch;
-  --shell-max: 72rem;
-  --radius: 0;
-  --radius-sm: 0;
-  --radius-md: 0;
-
+  --radius: 0.5rem;
+  --radius-full: 2rem;
 }
 
-* {
-  box-sizing: border-box;
+/* Dark theme */
+[data-theme="dark"] {
+  --bg: #1a1816;
+  --surface: #242120;
+  --surface-elevated: #2e2a28;
+  --text: #d4cfc8;
+  --text-strong: #f0ebe6;
+  --muted: #9a9590;
+  --line: #3a3634;
+  --line-strong: #4a4644;
+  --accent: #c9a88a;
+  --accent-hover: #dfc4a8;
+  --accent-soft: #2a2420;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --shadow-sm: rgba(0, 0, 0, 0.2);
 }
 
-html {
-  font-size: 100%;
-  -webkit-text-size-adjust: 100%;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a1816;
+    --surface: #242120;
+    --surface-elevated: #2e2a28;
+    --text: #d4cfc8;
+    --text-strong: #f0ebe6;
+    --muted: #9a9590;
+    --line: #3a3634;
+    --line-strong: #4a4644;
+    --accent: #c9a88a;
+    --accent-hover: #dfc4a8;
+    --accent-soft: #2a2420;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --shadow-sm: rgba(0, 0, 0, 0.2);
+  }
 }
 
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-}
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 100%; -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; min-height: 100%; }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-serif);
-  font-size: var(--step-0);
-  line-height: 1.2;
-  font-kerning: normal;
+  font: 400 var(--step-0)/1.2 var(--font-serif);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
-a {
-  color: var(--link);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.15em;
-}
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 0.15em; }
+a:hover { color: var(--accent-hover); text-decoration-thickness: 2px; }
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+img, video { height: auto; max-width: 100%; }
 
-a:hover {
-  color: var(--accent-hover);
-  text-decoration-thickness: 2px;
-}
-
-:focus-visible {
-  outline: 1px solid var(--focus);
-  outline-offset: 2px;
-}
-
-img,
-video {
-  height: auto;
-  max-width: 100%;
-}
-
-.skip-link {
-  left: var(--space-2);
-  position: absolute;
-  top: -4rem;
-  z-index: 50;
-}
-
-.skip-link:focus {
-  top: var(--space-2);
-}
-
-.sr-only {
-  border: 0;
-  clip: rect(0 0 0 0);
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  padding: 0;
-  position: absolute;
-  width: 1px;
-}
-
+/* Utilities */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+.skip-link { position: absolute; left: var(--space-2); top: -4rem; z-index: 50; }
+.skip-link:focus { top: var(--space-2); }
