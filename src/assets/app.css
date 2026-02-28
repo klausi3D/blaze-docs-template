@@ -204,8 +204,10 @@
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
-  position: sticky;
+  position: fixed;
   top: 3.5rem;
+  left: 0;
+  right: 0;
   z-index: 15;
 }
 
@@ -279,7 +281,7 @@
 .site-shell {
   margin: 0 auto;
   max-width: 50rem;
-  padding: 0 var(--space-2);
+  padding: 3rem var(--space-2) 0;
 }
 
 .doc-panel {
@@ -705,8 +707,12 @@
 
   /* Floating nav adjustments */
   .floating-nav {
-    top: 3rem;
+    top: 2.5rem;
     gap: var(--space-1);
+  }
+
+  .site-shell {
+    padding-top: 2.5rem;
   }
 
   .pages-toggle,
