@@ -8,12 +8,19 @@
     "node": ">=20"
   },
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "node tools/clean.mjs",
     "build": "node tools/build.mjs",
     "seed:book": "node tools/import-gutenberg.mjs",
     "check:budgets": "node tools/check-budgets.mjs",
+    "lint": "node tools/lint.mjs",
+    "typecheck": "node tools/typecheck.mjs",
+    "test": "node tools/test.mjs",
+    "e2e": "node tools/e2e.mjs",
+    "audit": "npm audit --audit-level=high",
+    "bundle-stats": "node tools/bundle-stats.mjs",
+    "ci": "npm run lint && npm run typecheck && npm run verify && npm run bundle-stats && npm run test && npm run audit",
     "verify": "npm run build && npm run check:budgets",
-    "preview": "python3 -m http.server 4173 --directory dist"
+    "preview": "python -m http.server 4173 --directory dist"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",

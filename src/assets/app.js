@@ -288,7 +288,11 @@ if (readerToggle) {
 // Global keyboard shortcuts
 document.addEventListener("keydown", (e) => {
   // Skip if typing in input
-  if (e.target.matches("input, textarea")) return;
+  const target = e.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  if (target.matches("input, textarea")) return;
 
   // Escape: exit reading mode or close dropdowns
   if (e.key === "Escape") {
@@ -459,11 +463,21 @@ async function runSearchQuery(query) {
     return;
   }
 
-  state.worker.postMessage({
-    type: "query",
-    id: requestId,
-    query,
-  });
+  try {
+    state.worker.postMessage({
+      type: "query",
+      id: requestId,
+      query,
+    });
+  } catch (error) {
+    if (!state.searchController?.signal.aborted) {
+      renderEmpty("Search is temporarily unavailable.");
+    }
+    cancelActiveSearch();
+    if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+      console.warn("Search query failed to post message", error);
+    }
+  }
 }
 
 function cancelActiveSearch() {
@@ -501,6 +515,8 @@ async function ensureSearch() {
     if (!state.worker) {
       state.worker = new Worker(resolveFromRoot(workerPath), { type: "module" });
       state.worker.addEventListener("message", onWorkerMessage);
+      state.worker.addEventListener("error", onSearchWorkerError);
+      state.worker.addEventListener("messageerror", onSearchWorkerMessageError);
     }
 
     await new Promise((resolve, reject) => {
@@ -573,6 +589,28 @@ function onWorkerMessage(event) {
 
   searchResults.replaceChildren(fragment);
   searchResults.classList.add("is-open");
+}
+
+function onSearchWorkerError(error) {
+  state.worker = null;
+  state.workerReady = false;
+  if (!state.searchController?.signal.aborted) {
+    renderEmpty("Search is unavailable.");
+  }
+  if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+    console.warn("Search worker error", error.message || String(error));
+  }
+}
+
+function onSearchWorkerMessageError(error) {
+  if (!state.searchController?.signal.aborted) {
+    renderEmpty("Search response is invalid.");
+  }
+  state.worker = null;
+  state.workerReady = false;
+  if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+    console.warn("Search worker message error", error.message || String(error));
+  }
 }
 
 function renderEmpty(message) {
