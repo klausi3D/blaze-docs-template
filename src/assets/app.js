@@ -6,6 +6,7 @@ const rootUrl = new URL(
 const resolveFromRoot = (path) => new URL(path, rootUrl).href;
 const SEARCH_MIN_QUERY_LENGTH = 2;
 const SEARCH_DEBOUNCE_MS = 120;
+const IS_DEV_HOST = /^(localhost|127\.0\.0\.1)$/u.test(window.location.hostname);
 const LINK_PREFETCH_SUPPORTED = (() => {
   const probe = document.createElement("link");
   return Boolean(probe.relList?.supports && probe.relList.supports("prefetch"));
@@ -220,7 +221,8 @@ if (readerToggle) {
     const page = readerContainer.querySelector(".reader-page");
     const elements = Array.from(prose.children);
     const pageHeight = page.clientHeight - 48;
-    let chunks = [], chunk = [];
+    const chunks = [];
+    let chunk = [];
     let chunkHeight = 0;
 
     elements.forEach(el => {
@@ -288,7 +290,11 @@ if (readerToggle) {
 // Global keyboard shortcuts
 document.addEventListener("keydown", (e) => {
   // Skip if typing in input
-  if (e.target.matches("input, textarea")) return;
+  const target = e.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  if (target.matches("input, textarea")) return;
 
   // Escape: exit reading mode or close dropdowns
   if (e.key === "Escape") {
@@ -459,11 +465,21 @@ async function runSearchQuery(query) {
     return;
   }
 
-  state.worker.postMessage({
-    type: "query",
-    id: requestId,
-    query,
-  });
+  try {
+    state.worker.postMessage({
+      type: "query",
+      id: requestId,
+      query,
+    });
+  } catch (error) {
+    if (!state.searchController?.signal.aborted) {
+      renderEmpty("Search is temporarily unavailable.");
+    }
+    cancelActiveSearch();
+    if (IS_DEV_HOST) {
+      console.warn("Search query failed to post message", error);
+    }
+  }
 }
 
 function cancelActiveSearch() {
@@ -501,6 +517,8 @@ async function ensureSearch() {
     if (!state.worker) {
       state.worker = new Worker(resolveFromRoot(workerPath), { type: "module" });
       state.worker.addEventListener("message", onWorkerMessage);
+      state.worker.addEventListener("error", onSearchWorkerError);
+      state.worker.addEventListener("messageerror", onSearchWorkerMessageError);
     }
 
     await new Promise((resolve, reject) => {
@@ -573,6 +591,28 @@ function onWorkerMessage(event) {
 
   searchResults.replaceChildren(fragment);
   searchResults.classList.add("is-open");
+}
+
+function onSearchWorkerError(error) {
+  state.worker = null;
+  state.workerReady = false;
+  if (!state.searchController?.signal.aborted) {
+    renderEmpty("Search is unavailable.");
+  }
+  if (IS_DEV_HOST) {
+    console.warn("Search worker error", error.message || String(error));
+  }
+}
+
+function onSearchWorkerMessageError(error) {
+  if (!state.searchController?.signal.aborted) {
+    renderEmpty("Search response is invalid.");
+  }
+  state.worker = null;
+  state.workerReady = false;
+  if (IS_DEV_HOST) {
+    console.warn("Search worker message error", error.message || String(error));
+  }
 }
 
 function renderEmpty(message) {
@@ -737,7 +777,7 @@ function setupScrollSpy() {
         if (sectionTitle && sectionTitle.length < 30) {
           tocToggle.textContent = sectionTitle;
         } else if (sectionTitle) {
-          tocToggle.textContent = sectionTitle.slice(0, 27) + "…";
+          tocToggle.textContent = `${sectionTitle.slice(0, 27)}…`;
         }
       }
     }

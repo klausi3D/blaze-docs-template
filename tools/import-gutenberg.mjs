@@ -7,20 +7,13 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 
 const args = parseArgs(process.argv.slice(2));
-const bookId = args.id || "1342";
-const bookTitle = args.title || "Pride and Prejudice";
-const bookAuthor = args.author || "Jane Austen";
+const bookId = parseBookId(args.id);
+const bookTitle = parseDisplayText(args.title, "Pride and Prejudice", "title");
+const bookAuthor = parseDisplayText(args.author, "Jane Austen", "author");
 const targetDir = path.join(rootDir, args.target || "content/book");
-const maxSections = args.maxSections ? Number(args.maxSections) : Infinity;
-const paragraphsPerChapter = args.paragraphsPerChapter ? Number(args.paragraphsPerChapter) : 1;
-const orderStart = args.orderStart ? Number(args.orderStart) : 120;
-
-if (maxSections !== Infinity && (!Number.isFinite(maxSections) || maxSections <= 0)) {
-  throw new Error("maxSections must be a positive number");
-}
-if (!Number.isFinite(paragraphsPerChapter) || paragraphsPerChapter <= 0) {
-  throw new Error("paragraphsPerChapter must be a positive number");
-}
+const maxSections = parsePositiveNumberOrInfinity(args.maxSections, Infinity);
+const paragraphsPerChapter = parsePositiveInteger(args.paragraphsPerChapter, 1);
+const orderStart = parseNonNegativeInteger(args.orderStart, 120);
 
 await importBook();
 
@@ -57,7 +50,7 @@ async function importBook() {
 
   const indexMd = [
     "---",
-    `title: \"${escapeYaml(bookTitle)} (Sample Book)\"`,
+    `title: "${escapeYaml(bookTitle)} (Sample Book)"`,
     "description: \"Project Gutenberg placeholder text for typography and reading tests.\"",
     `order: ${orderStart}`,
     "slug: book",
@@ -95,30 +88,106 @@ async function importBook() {
 }
 
 async function fetchGutenbergText(id) {
+  const numericId = String(id);
   const candidates = [
-    `https://www.gutenberg.org/cache/epub/${id}/pg${id}.txt`,
-    `https://www.gutenberg.org/files/${id}/${id}-0.txt`,
-    `https://www.gutenberg.org/files/${id}/${id}.txt`,
+    `https://www.gutenberg.org/cache/epub/${numericId}/pg${numericId}.txt`,
+    `https://www.gutenberg.org/files/${numericId}/${numericId}-0.txt`,
+    `https://www.gutenberg.org/files/${numericId}/${numericId}.txt`,
   ];
+  const fetchFailures = [];
+  let lastStatus = null;
 
   for (const url of candidates) {
-    const response = await fetch(url, {
-      headers: {
-        "user-agent": "blaze-docs-template/0.1 (+https://github.com/klausi3D/blaze-docs-template)",
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "user-agent": "blaze-docs-template/0.1 (+https://github.com/klausi3D/blaze-docs-template)",
+        },
+      });
 
-    if (!response.ok) {
-      continue;
-    }
+      lastStatus = `${response.status} ${response.statusText}`;
+      if (!response.ok) {
+        fetchFailures.push(`${url} -> ${lastStatus}`);
+        continue;
+      }
 
-    const text = await response.text();
-    if (text.length > 0) {
+      const text = await response.text();
+      if (!isLikelyBookText(text)) {
+        fetchFailures.push(`${url} -> content check failed (${text.length} chars)`);
+        continue;
+      }
+
       return text;
+    } catch (error) {
+      fetchFailures.push(`${url} -> ${error.message}`);
     }
   }
 
-  throw new Error(`Unable to fetch Gutenberg text for ebook #${id}`);
+  throw new Error(
+    `Unable to fetch or validate Gutenberg text for ebook #${numericId}: ${fetchFailures.join("; ")} (last status: ${lastStatus || "n/a"})`,
+  );
+}
+
+function parseBookId(rawId) {
+  if (rawId === undefined) {
+    return 1342;
+  }
+
+  const parsed = Number(rawId);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`Invalid book id "${rawId}". Provide a positive integer.`);
+  }
+  return parsed;
+}
+
+function parsePositiveNumberOrInfinity(rawValue, fallback) {
+  if (rawValue === undefined) {
+    return fallback;
+  }
+  if (String(rawValue).trim().toLowerCase() === "infinity") {
+    return Infinity;
+  }
+
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid numeric value "${rawValue}".`);
+  }
+  return parsed;
+}
+
+function parsePositiveInteger(rawValue, fallback) {
+  if (rawValue === undefined) {
+    return fallback;
+  }
+
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid numeric value "${rawValue}".`);
+  }
+  return parsed;
+}
+
+function parseNonNegativeInteger(rawValue, fallback) {
+  if (rawValue === undefined) {
+    return fallback;
+  }
+
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`Invalid numeric value "${rawValue}".`);
+  }
+  return parsed;
+}
+
+function parseDisplayText(rawValue, fallback, fieldName) {
+  const value = typeof rawValue === "string" ? collapseWhitespace(rawValue) : "";
+  if (!value) {
+    return fallback;
+  }
+  if (value.length > 120) {
+    throw new Error(`Invalid ${fieldName}: exceeds 120 characters.`);
+  }
+  return value;
 }
 
 function stripGutenbergBoilerplate(rawText) {
@@ -133,6 +202,19 @@ function stripGutenbergBoilerplate(rawText) {
   const endIndex = endMatch ? endMatch.index : normalized.length;
 
   return normalized.slice(startIndex, endIndex).trim();
+}
+
+function isLikelyBookText(text) {
+  const normalized = text.replace(/\r\n?/g, "\n");
+  if (normalized.length < 1024) {
+    return false;
+  }
+
+  return (
+    /project\s+gutenberg/i.test(normalized) ||
+    /\b[Gg]utenberg\s*[Ee]Book\b/.test(normalized) ||
+    /\*\*\*\s*START OF/i.test(normalized)
+  );
 }
 
 function splitIntoSections(bookBody) {

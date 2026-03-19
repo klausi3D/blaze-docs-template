@@ -33,8 +33,14 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Verify build and budgets
-        run: npm run verify
+      - name: Run local CI gates
+        run: npm run ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright smoke
+        run: npm run e2e
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -37,7 +37,13 @@ npm run check:budgets
 npm run preview
 ```
 
-5. Generate placeholder long-form content from Project Gutenberg:
+5. Set your browser runtime URL (defaults to dev server):
+
+```bash
+set APP_URL=http://localhost:4173
+```
+
+6. Generate placeholder long-form content from Project Gutenberg:
 
 ```bash
 npm run seed:book
@@ -45,7 +51,36 @@ npm run seed:book
 
 This creates a single page at `content/book/index.md` with one section per chapter (`## Chapter ...`), so chapter links appear in the page TOC. By default, it keeps one paragraph per chapter for fast loads.
 
+## Health Check Gates
+
+The repository exposes the following gates:
+
+- `npm run lint` — strict ESLint checks for `src/assets/**/*.js` and `tools/**/*.mjs`.
+- `npm run lint:syntax` — fast syntax-only check helper for repository JavaScript files.
+- `npm run typecheck` — frontmatter/link consistency checks for content files in `content/`.
+- `npm run check:budgets` — validates generated-size performance budgets.
+- `npm run test` — executes lint + typecheck + local broken-link check over `dist/`.
+- `npm run e2e` — Playwright route/interaction smoke (desktop + mobile) with artifact output under `output/playwright/`.
+- `npm run audit` — `npm audit --audit-level=high`.
+- `npm run bundle-stats` — prints a lightweight size report for `dist` (raw and Brotli candidates).
+- `npm run verify` — build and budget checks.
+- `npm run ci` — runs lint, typecheck, verify, bundle-stats, test, and audit in the CI order used for releases.
+
+Validation order used in CI:
+
+1. `npm run ci`
+
+Default local preview endpoint for smoke checks is `http://localhost:4173`.
+
+`npm run e2e` is a required CI gate before deploy.
+
 Grid debug mode is available in the UI (`Grid` button in top bar), with keyboard shortcut `Alt+G`, or by appending `?grid=1` to any URL.
+
+## Project Policies
+
+- License: [MIT](./LICENSE)
+- Contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Security policy: [SECURITY.md](./SECURITY.md)
 
 ## Content Authoring
 

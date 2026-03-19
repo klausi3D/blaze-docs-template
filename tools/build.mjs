@@ -365,7 +365,11 @@ function rewriteHref(href, page, pagesBySource) {
     return href;
   }
 
-  if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//") || href.startsWith("/")) {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) {
+    return href;
+  }
+
+  if (href.startsWith("/")) {
     return href;
   }
 
@@ -374,8 +378,13 @@ function rewriteHref(href, page, pagesBySource) {
     return href;
   }
 
+  const normalizedHref = safeNormalizeHref(pathPart);
+  if (!normalizedHref) {
+    return href;
+  }
+
   const sourceDir = path.posix.dirname(page.sourceRel);
-  const resolvedSourcePath = path.posix.normalize(path.posix.join(sourceDir, pathPart));
+  const resolvedSourcePath = path.posix.normalize(path.posix.join(sourceDir, normalizedHref));
   const targetPage = pagesBySource.get(resolvedSourcePath);
 
   if (!targetPage) {
@@ -384,6 +393,18 @@ function rewriteHref(href, page, pagesBySource) {
 
   const relativePath = relativeHref(page.outputPath, targetPage.urlPath || "");
   return hashPart ? `${relativePath}#${hashPart}` : relativePath;
+}
+
+function safeNormalizeHref(value) {
+  const normalized = toPosix(decodeURIComponentSafe(value)).replace(/\\\\/g, "/");
+  if (!normalized || normalized.startsWith(".") || normalized === "..") {
+    return null;
+  }
+  const withoutDotSegments = path.posix.normalize(normalized);
+  if (withoutDotSegments.startsWith("../") || withoutDotSegments.includes("/../")) {
+    return null;
+  }
+  return withoutDotSegments;
 }
 
 function injectHeadingAnchors(html) {
@@ -642,7 +663,7 @@ async function rewriteVideoTag(videoAttrs, innerHtml, page, mediaPipeline) {
 
 function parseHtmlAttributes(rawAttributes) {
   const attributes = new Map();
-  const attributePattern = /([^\s=\/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  const attributePattern = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
   let match;
 
   while ((match = attributePattern.exec(rawAttributes)) !== null) {
@@ -745,6 +766,10 @@ function decodePathSafe(value) {
   } catch {
     return value;
   }
+}
+
+function decodeURIComponentSafe(value) {
+  return decodePathSafe(value);
 }
 
 function isNonLocalSource(value) {
@@ -1277,7 +1302,7 @@ function renderPageHtml({
   const robots = noindex ? '<meta name="robots" content="noindex">' : "";
 
   const firstHeading = page.headings.length > 0 ? page.headings[0].text : "Contents";
-  const tocButtonText = firstHeading.length > 28 ? firstHeading.slice(0, 25) + "..." : firstHeading;
+  const tocButtonText = firstHeading.length > 28 ? `${firstHeading.slice(0, 25)}...` : firstHeading;
 
   return `<!doctype html>
 <html lang="en" data-site-root="${escapeAttribute(siteRoot)}" data-search-worker="assets/${searchWorkerFile}" data-search-index="assets/${searchIndexFile}" data-sw="${swFile}">
@@ -1527,12 +1552,15 @@ function parseBoolean(value, fallback = false) {
   if (typeof value === "boolean") {
     return value;
   }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
   if (typeof value === "string") {
     const normalized = value.trim().toLowerCase();
-    if (normalized === "true") {
+    if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") {
       return true;
     }
-    if (normalized === "false") {
+    if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") {
       return false;
     }
   }
