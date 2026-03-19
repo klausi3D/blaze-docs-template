@@ -663,7 +663,7 @@ async function rewriteVideoTag(videoAttrs, innerHtml, page, mediaPipeline) {
 
 function parseHtmlAttributes(rawAttributes) {
   const attributes = new Map();
-  const attributePattern = /([^\s=\/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  const attributePattern = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
   let match;
 
   while ((match = attributePattern.exec(rawAttributes)) !== null) {
@@ -1302,7 +1302,7 @@ function renderPageHtml({
   const robots = noindex ? '<meta name="robots" content="noindex">' : "";
 
   const firstHeading = page.headings.length > 0 ? page.headings[0].text : "Contents";
-  const tocButtonText = firstHeading.length > 28 ? firstHeading.slice(0, 25) + "..." : firstHeading;
+  const tocButtonText = firstHeading.length > 28 ? `${firstHeading.slice(0, 25)}...` : firstHeading;
 
   return `<!doctype html>
 <html lang="en" data-site-root="${escapeAttribute(siteRoot)}" data-search-worker="assets/${searchWorkerFile}" data-search-index="assets/${searchIndexFile}" data-sw="${swFile}">

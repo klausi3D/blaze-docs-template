@@ -50,7 +50,7 @@ async function importBook() {
 
   const indexMd = [
     "---",
-    `title: \"${escapeYaml(bookTitle)} (Sample Book)\"`,
+    `title: "${escapeYaml(bookTitle)} (Sample Book)"`,
     "description: \"Project Gutenberg placeholder text for typography and reading tests.\"",
     `order: ${orderStart}`,
     "slug: book",

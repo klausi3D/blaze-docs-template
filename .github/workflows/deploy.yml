@@ -36,9 +36,11 @@ jobs:
       - name: Run local CI gates
         run: npm run ci
 
-      - name: Playwright smoke (optional)
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright smoke
         run: npm run e2e
-        continue-on-error: true
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

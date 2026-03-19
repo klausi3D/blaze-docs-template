@@ -55,11 +55,12 @@ This creates a single page at `content/book/index.md` with one section per chapt
 
 The repository exposes the following gates:
 
-- `npm run lint` — syntax check for repository JavaScript assets and tooling.
+- `npm run lint` — strict ESLint checks for `src/assets/**/*.js` and `tools/**/*.mjs`.
+- `npm run lint:syntax` — fast syntax-only check helper for repository JavaScript files.
 - `npm run typecheck` — frontmatter/link consistency checks for content files in `content/`.
 - `npm run check:budgets` — validates generated-size performance budgets.
 - `npm run test` — executes lint + typecheck + local broken-link check over `dist/`.
-- `npm run e2e` — Playwright route/interaction smoke (desktop + mobile) with artifact output under `output/playwright/`. Install Playwright first with `npm install -D playwright` if you want local smoke coverage.
+- `npm run e2e` — Playwright route/interaction smoke (desktop + mobile) with artifact output under `output/playwright/`.
 - `npm run audit` — `npm audit --audit-level=high`.
 - `npm run bundle-stats` — prints a lightweight size report for `dist` (raw and Brotli candidates).
 - `npm run verify` — build and budget checks.
@@ -71,9 +72,15 @@ Validation order used in CI:
 
 Default local preview endpoint for smoke checks is `http://localhost:4173`.
 
-`npm run e2e` is intentionally optional in CI because browser smoke tests can be flaky on shared runners; runtime output remains dependency-free in production.
+`npm run e2e` is a required CI gate before deploy.
 
 Grid debug mode is available in the UI (`Grid` button in top bar), with keyboard shortcut `Alt+G`, or by appending `?grid=1` to any URL.
+
+## Project Policies
+
+- License: [MIT](./LICENSE)
+- Contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Security policy: [SECURITY.md](./SECURITY.md)
 
 ## Content Authoring
 

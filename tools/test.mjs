@@ -11,7 +11,16 @@ if (!existsSync(path.join(rootDir, "dist"))) {
   runCommand(process.execPath, [path.join(rootDir, "tools", "build.mjs")], "build");
 }
 
-runCommand(process.execPath, [path.join(rootDir, "tools", "lint.mjs")], "lint");
+runCommand(
+  process.execPath,
+  [
+    path.join(rootDir, "node_modules", "eslint", "bin", "eslint.js"),
+    "--max-warnings=0",
+    "src/assets/**/*.js",
+    "tools/**/*.mjs",
+  ],
+  "lint",
+);
 runCommand(process.execPath, [path.join(rootDir, "tools", "typecheck.mjs")], "typecheck");
 runCommand(process.execPath, [path.join(rootDir, "tools", "broken-link-check.mjs")], "broken-link-check");
 
